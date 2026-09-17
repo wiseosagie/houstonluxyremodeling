@@ -4,12 +4,38 @@ import Breadcrumbs from "@/components/shared/Breadcrumbs";
 import CTASection from "@/components/shared/CTASection";
 import PrimaryCta from "@/components/shared/PrimaryCta";
 import { IMAGES } from "@/data/images";
+import { PROJECT_CATEGORIES, NEIGHBORHOODS, SITE_NAME, SITE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Luxury Remodeling in Houston | Whole-Home, Kitchen & More",
   description:
     "A guide to planning a significant Houston home renovation — whole-home remodels, luxury kitchens, primary suites, additions, and outdoor living — plus how to choose the right professional.",
   alternates: { canonical: "/luxury-remodeling-houston" },
+};
+
+const serviceJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Service",
+  serviceType: "Residential remodeling and design-build matching",
+  name: `Luxury Home Remodeling in Houston | ${SITE_NAME}`,
+  provider: {
+    "@type": "Organization",
+    name: SITE_NAME,
+    url: SITE_URL,
+  },
+  areaServed: NEIGHBORHOODS.map((n) => ({ "@type": "Place", name: n.name })),
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: "Renovation Project Categories",
+    itemListElement: PROJECT_CATEGORIES.map((c) => ({
+      "@type": "Offer",
+      itemOffered: {
+        "@type": "Service",
+        name: c.name,
+        description: c.description,
+      },
+    })),
+  },
 };
 
 function Section({
@@ -57,6 +83,10 @@ function Section({
 export default function LuxuryRemodelingHoustonPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd) }}
+      />
       <Breadcrumbs items={[{ label: "Luxury Remodeling Houston", href: "/luxury-remodeling-houston" }]} />
 
       <header className="container-page pt-8 pb-16 md:pb-20">
@@ -204,10 +234,13 @@ export default function LuxuryRemodelingHoustonPage() {
             </p>
             <p>
               <strong className="text-charcoal">Deed restrictions and neighborhood character.</strong>{" "}
-              Established neighborhoods such as River Oaks, Memorial, Tanglewood, and West
-              University often carry deed restrictions or civic association guidelines that affect
-              setbacks, height, and exterior materials. These should be reviewed early, not after
-              design is underway.
+              Established neighborhoods such as{" "}
+              <a href="/houston" className="underline hover:text-bronze-dark">
+                River Oaks, Memorial, Tanglewood, and West University
+              </a>{" "}
+              often carry deed restrictions or civic association guidelines that affect setbacks,
+              height, and exterior materials. These should be reviewed early, not after design is
+              underway.
             </p>
             <p>
               <strong className="text-charcoal">Permitting timelines.</strong> The City of Houston's

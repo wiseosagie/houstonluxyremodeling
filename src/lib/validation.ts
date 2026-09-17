@@ -39,8 +39,12 @@ export const leadSubmissionSchema = z.object({
   landingPage: z.string().trim().max(500).optional().default(""),
   referrer: z.string().trim().max(500).optional().default(""),
 
-  // Spam protection.
-  website: z.string().max(0).optional().default(""), // honeypot — must stay empty
+  // Spam protection. `website` is a hidden honeypot field — legitimate users
+  // never see or fill it. It must accept any value here (a bot's filled-in
+  // value included) so the request reaches the route handler, which decides
+  // what to do with it silently. Rejecting a non-empty value at the schema
+  // level would surface a normal validation error and tip the bot off.
+  website: z.string().trim().max(500).optional().default(""),
   formStartedAt: z.number().optional(),
 });
 

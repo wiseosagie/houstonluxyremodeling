@@ -21,7 +21,7 @@ export default function CTASection({
     <section className={dark ? "bg-charcoal text-white" : "bg-stone-50 text-charcoal"}>
       <div className="container-page py-20 md:py-24 text-center">
         <p className={`eyebrow mb-4 ${dark ? "text-stone-300" : ""}`}>{eyebrow}</p>
-        <h2 className="text-3xl md:text-4xl max-w-2xl mx-auto">{title}</h2>
+        <h2 className={`text-3xl md:text-4xl max-w-2xl mx-auto ${dark ? "text-white" : ""}`}>{title}</h2>
         {description && (
           <p
             className={`mt-5 max-w-xl mx-auto text-base leading-relaxed ${

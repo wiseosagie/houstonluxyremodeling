@@ -5,7 +5,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import AttributionInit from "@/components/analytics/AttributionInit";
-import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { SITE_NAME, SITE_URL, NEIGHBORHOODS } from "@/lib/constants";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -25,7 +25,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} | Private Renovation Consultation for Houston Homes`,
+    default: `${SITE_NAME} | Private Houston Renovation Consultation`,
     template: `%s | ${SITE_NAME}`,
   },
   description:
@@ -34,6 +34,7 @@ export const metadata: Metadata = {
     type: "website",
     siteName: SITE_NAME,
     url: SITE_URL,
+    locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
@@ -52,8 +53,24 @@ const organizationJsonLd = {
   "@type": "Organization",
   name: SITE_NAME,
   url: SITE_URL,
+  image: `${SITE_URL}/opengraph-image`,
+  logo: `${SITE_URL}/opengraph-image`,
   description:
     "A matching and referral service connecting Houston homeowners with independent remodeling and design-build professionals.",
+  areaServed: [
+    { "@type": "City", name: "Houston, TX" },
+    ...NEIGHBORHOODS.map((n) => ({ "@type": "Place", name: n.name })),
+  ],
+  ...(process.env.NEXT_PUBLIC_CONTACT_PHONE
+    ? {
+        contactPoint: {
+          "@type": "ContactPoint",
+          telephone: process.env.NEXT_PUBLIC_CONTACT_PHONE,
+          contactType: "customer service",
+          areaServed: "US",
+        },
+      }
+    : {}),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

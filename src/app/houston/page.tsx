@@ -36,6 +36,13 @@ export default function HoustonAreasPage() {
             We're focused initially on the Houston neighborhoods where significant renovation
             projects are most common. This list will grow as the service expands.
           </p>
+          <p className="mt-4 text-lg leading-relaxed text-charcoal-light">
+            Planning a project in one of these areas? See our{" "}
+            <a href="/luxury-remodeling-houston" className="underline hover:text-bronze-dark">
+              guide to luxury remodeling in Houston
+            </a>{" "}
+            for project types, budget considerations, and how to choose a professional.
+          </p>
         </div>
       </header>
 

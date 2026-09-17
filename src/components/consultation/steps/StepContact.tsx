@@ -12,7 +12,7 @@ export type ContactValues = {
 
 type Props = {
   value: ContactValues;
-  onSubmit: (value: ContactValues) => void;
+  onSubmit: (value: ContactValues, website: string) => void;
   onBack: () => void;
   submitting: boolean;
   submitError: string | null;
@@ -24,6 +24,10 @@ const PHONE_RE = /^[\d\s()+.-]{7,20}$/;
 export default function StepContact({ value, onSubmit, onBack, submitting, submitError }: Props) {
   const [form, setForm] = useState(value);
   const [touched, setTouched] = useState(false);
+  // Honeypot: a hidden field a real visitor never sees, tabs to, or fills.
+  // Bots that auto-fill every input on the form populate it, which the API
+  // uses to silently discard the submission. See src/app/api/leads/route.ts.
+  const [website, setWebsite] = useState("");
 
   const errors = {
     firstName: form.firstName.trim().length === 0,
@@ -37,7 +41,7 @@ export default function StepContact({ value, onSubmit, onBack, submitting, submi
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setTouched(true);
-    if (isValid) onSubmit(form);
+    if (isValid) onSubmit(form, website);
   };
 
   return (
@@ -46,6 +50,21 @@ export default function StepContact({ value, onSubmit, onBack, submitting, submi
       <p className="text-sm text-charcoal-light mb-8">
         Your information is kept private. See our Privacy Policy for detail.
       </p>
+
+      {/* Honeypot — visually hidden and unreachable by keyboard/screen reader
+          for real visitors; only a bot filling every field will populate it. */}
+      <div style={{ position: "absolute", left: "-9999px", top: "-9999px" }} aria-hidden="true">
+        <label htmlFor="website">Website</label>
+        <input
+          id="website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
+        />
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>

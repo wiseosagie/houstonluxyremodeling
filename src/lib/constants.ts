@@ -2,6 +2,12 @@ export const SITE_NAME = "Houston Luxury Remodeling";
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://www.houstonluxuryremodeling.com";
 
+// Single source of truth for the public-facing contact address. Override via
+// NEXT_PUBLIC_CONTACT_EMAIL if the inbox ever changes; every component that
+// displays a contact email should import this rather than hardcoding one.
+export const CONTACT_EMAIL =
+  process.env.NEXT_PUBLIC_CONTACT_EMAIL || "hello@houstonluxuryremodeling.com";
+
 export const NAV_LINKS = [
   { href: "/luxury-remodeling-houston", label: "Services" },
   { href: "/houston", label: "Areas We Serve" },

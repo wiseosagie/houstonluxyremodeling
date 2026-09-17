@@ -13,9 +13,9 @@ disclosure shown on the live site.
 |---|---|---|
 | Framework | Next.js 15 (App Router) + TypeScript | Fast to deploy, excellent SEO primitives (metadata API, sitemap/robots as code, RSC for fast first paint), one deployment target for pages + API route |
 | Styling | Tailwind CSS | Rapid, consistent design-system implementation without a component library dependency |
-| Database | Supabase (Postgres) | Managed Postgres with RLS, generous free tier, simple JS client, easy migration path to a fuller CRM in Phase 2 |
-| Email | Resend (HTTP API, no SDK) | Simple, modern transactional email API; called directly via `fetch` to avoid an extra dependency |
-| Hosting | Vercel | First-class Next.js support, zero-config preview deployments, edge network for Core Web Vitals |
+| Database | SQLite (Node's built-in `node:sqlite`) | Zero-config, file-based, no external service or account needed for an MVP's lead volume. See [`src/lib/db.ts`](src/lib/db.ts). |
+| Email | Resend (HTTP API, no SDK) — **dormant for Phase 1 launch**, not required | Code remains in place ([`src/lib/email.ts`](src/lib/email.ts)) but automated lead-notification email is intentionally not configured for the Phase 1 launch; the SQLite `leads` table is the system of record. The app runs normally with `RESEND_API_KEY`/`LEAD_NOTIFICATION_EMAIL` unset — see "Email notifications" below. |
+| Hosting | Vercel (or any Node 24+ host) | First-class Next.js support; `node:sqlite` requires Node 24+ |
 | Validation | Zod | Shared shape between the form and the server-side API validation |
 
 This is intentionally **not** over-engineered: no CMS, no ORM, no state-management library, no
@@ -33,10 +33,11 @@ src/
     shared/                   Reused across pages (CTASection, FAQ, ServiceCard, LocationCard, TrustSection, ProcessSteps, Breadcrumbs, InspirationGallery, PrimaryCta, PhoneLink, Wordmark)
     consultation/             The 7-step funnel: ConsultationForm (orchestrator), FormProgress, OptionCard, steps/*, ConfirmationScreen
     analytics/                GoogleAnalytics (GA4 loader + pageview tracker), AttributionInit (UTM capture)
-  lib/                        constants, validation (Zod), leadScoring, zipNeighborhood, email, rateLimit, supabaseServer, gtag, attribution
+  lib/                        constants, validation (Zod), leadScoring, zipNeighborhood, email, rateLimit, db (SQLite), gtag, attribution
   data/                       images.ts — the single source of truth for every photo used on the site
-supabase/migrations/          SQL schema (leads, lead_rate_limits, RLS)
+data/app.db                   SQLite database file (git-ignored, created on first run)
 docs/                         Deep-dive docs referenced below
+test/                         `node --test` suite for the leads API (honeypot, timing heuristic, rate limit) — see "Testing" below
 ```
 
 ## Local development
@@ -48,14 +49,17 @@ npm run dev                    # http://localhost:3000
 ```
 
 The site **runs and renders fully** with zero environment variables set. Google Analytics,
-the phone number, and structured-data extras simply don't render until configured. The
-consultation funnel is fully usable end to end; only the final database write and email will
-fail (gracefully — see "Known Limitations") until Supabase/Resend are configured.
+Search Console verification, the phone number, and structured-data extras simply don't render
+until configured. The consultation funnel is fully usable end to end and writes to a local
+SQLite file (`data/app.db`, created automatically) with zero configuration — lead-notification
+email is the only piece that requires credentials, and it's intentionally optional (see "Email
+notifications" below).
 
 ```bash
 npm run typecheck   # tsc --noEmit
-npm run lint         # next lint
+npm run lint         # next lint (not currently configured — see "Known Limitations")
 npm run build        # production build
+npm test             # node --test — leads API: honeypot, timing heuristic, rate limit
 ```
 
 ## Environment variables
@@ -64,45 +68,42 @@ See [`.env.example`](.env.example) for the full, commented list. Summary:
 
 | Variable | Required for | Notes |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | — | Present for future client-side/Phase 2 use; the current API route uses the service role key exclusively |
-| `SUPABASE_SERVICE_ROLE_KEY` | Storing leads | Server-only. Never expose to the browser. |
-| `RESEND_API_KEY` | Lead notification email | Get one at resend.com |
-| `EMAIL_FROM` | Lead notification email | Defaults to Resend's shared sandbox address until a sending domain is verified |
-| `LEAD_NOTIFICATION_EMAIL` | Lead notification email | Inbox that receives every new lead |
-| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Analytics | GA4 is entirely inert without this |
+| `SQLITE_DB_PATH` | Storing leads | Optional — defaults to `./data/app.db`. The file and its parent directory are created automatically on first use. |
+| `RESEND_API_KEY` / `LEAD_NOTIFICATION_EMAIL` | Lead notification email | **Not required for Phase 1 launch.** Leave unset — the app stores every lead in SQLite regardless; a missing email config only skips the (currently dormant) notification email and logs `email_not_configured`. See "Email notifications" below. |
+| `EMAIL_FROM` | Lead notification email | Only relevant if the above two are set. Defaults to Resend's shared sandbox address. |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Analytics | **GA4 Measurement ID required from you.** Entirely inert (no script loads, no events fire) until this is set. Get it from GA4 Admin → Data Streams → your web stream. |
 | `NEXT_PUBLIC_SITE_URL` | Canonical URLs, sitemap, OG metadata | Set to the real production domain before launch |
-| `NEXT_PUBLIC_GSC_VERIFICATION` | Search Console | HTML-tag verification value |
+| `NEXT_PUBLIC_GSC_VERIFICATION` | Search Console | **Verification token required from you.** From Search Console → Settings → Ownership verification → HTML tag method — copy only the `content="..."` value, not the full tag. Renders as `<meta name="google-site-verification">` when set. |
 | `NEXT_PUBLIC_CONTACT_PHONE` | Click-to-call UI | Optional — omitted entirely (no fabricated number) until a real monitored line exists |
-| `NEXT_PUBLIC_CONTACT_EMAIL` | `/contact` page | Defaults to `hello@houstonluxuryremodeling.com` — **create this inbox before launch** |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | Public-facing contact address (`/contact`, footer, legal pages via `CONTACT_EMAIL` in `src/lib/constants.ts`) | Defaults to `hello@houstonluxuryremodeling.com`. **You must confirm this inbox exists and receives mail before launch** — the code uses the address, but nothing in this repo can verify the mailbox itself. |
 
-## Production deployment (Vercel + Supabase)
+## Production deployment
 
-1. **Supabase**: create a project, then run `supabase/migrations/0001_init.sql` in the SQL
-   editor (or `supabase db push` with the CLI). Copy the project URL, anon key, and service
-   role key into your environment.
-2. **Resend**: create an account, verify a sending domain for `houstonluxuryremodeling.com`
-   (or use the shared sandbox address short-term), and generate an API key.
-3. **Vercel**: import this repository, set all environment variables from `.env.example` in
-   the Vercel project settings, and deploy. No build configuration is needed beyond the
-   default Next.js preset.
-4. Point the `houstonluxuryremodeling.com` DNS at Vercel and set `NEXT_PUBLIC_SITE_URL`
+1. **Database**: none needed — SQLite is a file on disk. On a platform with an ephemeral
+   filesystem (e.g. most serverless/edge hosts), mount a persistent volume and point
+   `SQLITE_DB_PATH` at it, or the `leads` table will reset on every deploy/cold start. This is
+   the one deployment detail that matters more with SQLite than it would with a hosted
+   database — plan for it before launch.
+2. **Vercel** (or any Node 24+ host): import this repository, set the environment variables
+   above, and deploy. No build configuration is needed beyond the default Next.js preset.
+3. Point the `houstonluxuryremodeling.com` DNS at your host and set `NEXT_PUBLIC_SITE_URL`
    accordingly.
-5. Create Google Analytics 4 and Google Search Console properties for the live domain, set
+4. Create Google Analytics 4 and Google Search Console properties for the live domain, set
    `NEXT_PUBLIC_GA_MEASUREMENT_ID` and `NEXT_PUBLIC_GSC_VERIFICATION`, and redeploy.
+5. Confirm the `NEXT_PUBLIC_CONTACT_EMAIL` inbox exists and is monitored.
 
 ## Database schema
 
-Defined in [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql). The
-`leads` table includes every field specified in the brief (contact info, project details,
-lead score/classification, full UTM attribution, and a `status` pipeline column defaulting to
-`NEW`) plus `internal_notes` / `assigned_partner` for manual triage. Row Level Security is
-enabled with **no anon-key policies defined at all** — every read/write happens server-side
-through the Supabase service role key (which bypasses RLS), so the public anon key currently
-has zero access to lead data. A small `lead_rate_limits` table (IP hash + timestamp only, no
-PII) backs the rate limiter.
+Defined in [`src/lib/db.ts`](src/lib/db.ts) (Node's built-in `node:sqlite`, no external
+dependency). The `leads` table includes every field specified in the brief (contact info,
+project details, lead score/classification, full UTM attribution, and a `status` pipeline
+column defaulting to `NEW`) plus `internal_notes` / `assigned_partner` for manual triage. A
+small `lead_rate_limits` table (IP hash + timestamp only, no PII) backs the rate limiter. The
+schema is created automatically on first run (`create table if not exists`) — no separate
+migration step.
 
 The schema is intentionally additive-friendly for Phase 2 (see below) — new columns or tables
-(e.g., a `partners` table) can be added without touching this migration.
+(e.g., a `partners` table) can be added directly in `db.ts`.
 
 ## Lead scoring
 
@@ -112,11 +113,47 @@ classification thresholds, and how to recalibrate after 90 days. Implementation:
 
 ## Email notifications
 
-See [`src/lib/email.ts`](src/lib/email.ts). Sent via Resend's HTTP API on every successful
-lead submission. If email delivery fails, the failure is logged (`console.error`) but the
-already-stored database row is never rolled back or deleted — the lead is safe regardless of
-email delivery status. Configuration: `RESEND_API_KEY`, `EMAIL_FROM`,
-`LEAD_NOTIFICATION_EMAIL`.
+**Not configured for Phase 1 launch, by design.** The SQLite `leads` table is the system of
+record; check it directly for new submissions. The Resend integration in
+[`src/lib/email.ts`](src/lib/email.ts) is left in place but dormant — `sendLeadNotificationEmail`
+returns `{ sent: false, error: "email_not_configured" }` and logs a `console.error` when
+`RESEND_API_KEY` or `LEAD_NOTIFICATION_EMAIL` is unset, and the API route
+([`src/app/api/leads/route.ts`](src/app/api/leads/route.ts)) always stores the lead first and
+treats that failure as non-fatal — a missing or failed email never loses or blocks a lead. If
+automated notifications are wanted in a later phase, set `RESEND_API_KEY`,
+`LEAD_NOTIFICATION_EMAIL`, and optionally `EMAIL_FROM`.
+
+## Spam protection
+
+Three independent layers, all server-side in
+[`src/app/api/leads/route.ts`](src/app/api/leads/route.ts):
+
+1. **Rate limiting** ([`src/lib/rateLimit.ts`](src/lib/rateLimit.ts)) — max 5 submissions per
+   IP hash per rolling hour, backed by SQLite plus an in-memory first pass.
+2. **Honeypot** — a hidden `website` field (`src/components/consultation/steps/StepContact.tsx`)
+   that's visually hidden, `tabindex="-1"`, and `aria-hidden` so real visitors never see or
+   reach it; a bot that fills every field populates it.
+3. **Timing heuristic** — submissions completed in under 2.5 seconds from when the funnel
+   mounted are treated as automated.
+
+Any of the three causes the request to be **silently discarded**: the response is a normal
+`{ success: true }` 2xx (so a bot gets no signal anything was rejected, and no validation
+details are ever leaked), but with `leadId: null` instead of a real id, since nothing was
+stored. The client (`ConsultationForm.tsx`) only fires the `consultation_submitted` GA4 event
+when a real `leadId` comes back, so a caught bot submission is never counted as a completed
+consultation.
+
+## Testing
+
+`npm test` runs [`test/leads-api.test.ts`](test/leads-api.test.ts) via Node's built-in
+`node:test` runner (no test framework dependency) directly against the `POST /api/leads`
+handler, using an in-memory SQLite database. It covers: a normal submission, the honeypot
+being filled, a genuinely invalid field still returning a normal 400, the timing heuristic,
+lead-score correctness, and rate limiting (6th rapid request from one IP gets a 429; a
+different IP is unaffected). See [`test/register.mjs`](test/register.mjs) /
+[`test/alias-loader.mjs`](test/alias-loader.mjs) for the small amount of plumbing this needs
+(resolving the `@/*` path alias and Next's extensionless subpath imports under plain Node,
+and the `--conditions=react-server` flag so `import "server-only"` no-ops instead of throwing).
 
 ## Imagery
 
@@ -147,20 +184,26 @@ credentials before launch.
   `/matching-service-disclosure` are written to be honest and reasonably complete, but they
   are not a substitute for review by a Texas-licensed attorney, particularly around consumer
   data privacy obligations and any home-services-specific disclosure requirements.
-- **No live third-party credentials.** Supabase, Resend, GA4, and Search Console all require
-  real accounts this environment doesn't have access to. Every integration point uses a
-  clearly named environment variable and fails gracefully (logs, doesn't crash, doesn't lose
-  data) when unset — see `docs/TESTING_CHECKLIST.md`'s "requires manual verification" section.
-- **`NEXT_PUBLIC_CONTACT_EMAIL` and the domain's DNS/inbox don't exist yet.** The `/contact`
-  page defaults to `hello@houstonluxuryremodeling.com`; create that inbox before launch or
-  override the env var.
+- **No live GA4/Search Console credentials.** Both require real accounts this environment
+  doesn't have access to. Both are fully implemented and gated on their environment
+  variables — set `NEXT_PUBLIC_GA_MEASUREMENT_ID` and `NEXT_PUBLIC_GSC_VERIFICATION` and they
+  activate with no code changes.
+- **`NEXT_PUBLIC_CONTACT_EMAIL` inbox existence is unverified.** The code correctly uses
+  `hello@houstonluxuryremodeling.com` everywhere (via `CONTACT_EMAIL` in
+  `src/lib/constants.ts`) — **you must confirm that inbox exists and receives mail** before
+  launch; nothing in this repo can verify that for you.
 - **No phone number.** `NEXT_PUBLIC_CONTACT_PHONE` is left blank by design — nothing is
   fabricated. Click-to-call UI and the `phone_clicked` event simply don't render until a real,
   monitored number is added.
 - **Rate limiting is best-effort for an MVP**, not enterprise-grade bot defense: an in-memory
-  check (per warm serverless instance) plus a Supabase-backed IP-hash counter, plus a
-  honeypot field and a minimum-fill-time heuristic. Sufficient to blunt naive spam bots; a
-  determined attacker could still get through. Reassess if spam becomes a real problem.
+  check (per warm process) plus a SQLite-backed IP-hash counter, plus a honeypot field and a
+  minimum-fill-time heuristic (see "Spam protection" above). Sufficient to blunt naive spam
+  bots; a determined attacker could still get through. Reassess if spam becomes a real
+  problem.
+- **SQLite on an ephemeral filesystem loses data.** See the deployment note above — this only
+  matters on hosts that don't persist local disk between deploys/restarts.
+- **No ESLint config is present**, so `npm run lint` currently prompts for interactive setup
+  rather than running. Pre-existing gap, not introduced by this round of changes.
 - **ZIP → neighborhood matching is prefix-based**, not a real geocoding service. It's used
   only for lead-scoring convenience and internal notes, never to block submission.
 - **Cross-browser testing this session was Chromium-only** (headless, via Playwright). Safari
@@ -180,9 +223,10 @@ In priority order, based on what would most directly answer the Phase 1 success 
 2. **Individual neighborhood SEO pages** (`/houston/river-oaks`, etc.) — the data model
    (`NEIGHBORHOODS` in `src/lib/constants.ts`) and `/houston` page structure were built so
    this is a route-splitting exercise, not a redesign.
-3. **A minimal internal leads dashboard** (even a Supabase Studio saved view or a single
-   authenticated `/admin/leads` page) so status updates (`CONTACTED` → `QUALIFIED` → …) don't
-   require the Supabase dashboard directly.
+3. **A minimal internal leads dashboard** (even a single authenticated `/admin/leads` page
+   querying SQLite directly, or a migration to a hosted Postgres provider with a proper admin
+   UI) so status updates (`CONTACTED` → `QUALIFIED` → …) don't require opening the database
+   file by hand.
 4. **Real partner portfolios**, once available, to replace/supplement the stock "Design
    Inspiration" imagery with genuine completed-project photography (with partner permission).
 5. **A `partners` table + basic routing rule** once there's more than a handful of

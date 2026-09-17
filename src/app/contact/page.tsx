@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Breadcrumbs from "@/components/shared/Breadcrumbs";
 import PrimaryCta from "@/components/shared/PrimaryCta";
 import PhoneLink from "@/components/shared/PhoneLink";
+import { CONTACT_EMAIL } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -10,8 +11,6 @@ export const metadata: Metadata = {
 };
 
 export default function ContactPage() {
-  const email = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "hello@houstonluxuryremodeling.com";
-
   return (
     <>
       <Breadcrumbs items={[{ label: "Contact", href: "/contact" }]} />
@@ -31,10 +30,10 @@ export default function ContactPage() {
             For press, partnership, or general questions unrelated to a specific renovation project:
           </p>
           <a
-            href={`mailto:${email}`}
+            href={`mailto:${CONTACT_EMAIL}`}
             className="mt-3 inline-block text-lg text-bronze-dark hover:underline"
           >
-            {email}
+            {CONTACT_EMAIL}
           </a>
           <div className="mt-2">
             <PhoneLink className="text-lg text-bronze-dark hover:underline" />

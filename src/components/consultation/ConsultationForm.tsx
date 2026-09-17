@@ -54,6 +54,16 @@ export default function ConsultationForm() {
   const [submitted, setSubmitted] = useState(false);
   const formStartedAt = useRef<number>(0);
   const started = useRef(false);
+  const topRef = useRef<HTMLDivElement>(null);
+
+  // A long step (e.g. the vision textarea) can leave the page scrolled well
+  // past the top of the form. Without this, advancing/going back or landing
+  // on the confirmation screen can leave the new content below the fold —
+  // most noticeably the confirmation message appearing to be "just the
+  // footer" until the visitor scrolls up themselves.
+  useEffect(() => {
+    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [step, submitted]);
 
   useEffect(() => {
     formStartedAt.current = Date.now();
@@ -76,7 +86,7 @@ export default function ConsultationForm() {
     setStep((s) => Math.max(1, s - 1));
   }
 
-  async function handleSubmit(contact: ContactValues) {
+  async function handleSubmit(contact: ContactValues, website: string) {
     setSubmitting(true);
     setSubmitError(null);
 
@@ -105,7 +115,7 @@ export default function ConsultationForm() {
           term: attribution.term,
           landingPage: attribution.landingPage,
           referrer: attribution.referrer,
-          website: "",
+          website,
           formStartedAt: formStartedAt.current,
         }),
       });
@@ -115,11 +125,19 @@ export default function ConsultationForm() {
         throw new Error(body?.error || "Something went wrong. Please try again.");
       }
 
+      const body = await response.json().catch(() => ({}));
+
       setForm((f) => ({ ...f, contact }));
-      trackEvent("consultation_submitted", {
-        project_type: form.projectType,
-        budget_range: form.budgetRange,
-      });
+      // leadId is only present when the lead was actually stored — a
+      // silently-discarded bot/honeypot submission still returns a 2xx with
+      // an identical shape, but with leadId: null, so it never counts as a
+      // completed consultation here.
+      if (body?.leadId) {
+        trackEvent("consultation_submitted", {
+          project_type: form.projectType,
+          budget_range: form.budgetRange,
+        });
+      }
       setSubmitted(true);
     } catch (error) {
       setSubmitError(
@@ -133,11 +151,20 @@ export default function ConsultationForm() {
   }
 
   if (submitted) {
-    return <ConfirmationScreen firstName={form.contact.firstName} />;
+    return (
+      <div ref={topRef} className="scroll-mt-24">
+        <ConfirmationScreen firstName={form.contact.firstName} />
+      </div>
+    );
   }
 
   return (
-    <div>
+    <div ref={topRef} className="scroll-mt-24">
+      {step === 1 && (
+        <p className="mb-6 text-xs uppercase tracking-widest2 text-bronze-dark">
+          About 2 minutes · 7 short steps
+        </p>
+      )}
       <FormProgress step={step} />
 
       {step === 1 && (

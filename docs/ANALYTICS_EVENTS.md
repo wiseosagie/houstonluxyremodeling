@@ -14,10 +14,15 @@ if GA hasn't loaded (e.g., local dev without the env var, or an ad blocker).
 | `phone_clicked` | The click-to-call link is clicked (only rendered when `NEXT_PUBLIC_CONTACT_PHONE` is set) | `phone` |
 | `consultation_started` | The `/consultation` form mounts (fires once per page load) | — |
 | `consultation_step_completed` | Each time a funnel step is completed and the user advances | `step_number` (1–6), `step_name` (`project_type`, `location`, `budget`, `timeline`, `design_status`, `vision`) |
-| `consultation_submitted` | The lead is successfully stored via `/api/leads` (fired after a `2xx` response, not on click) | `project_type`, `budget_range` |
+| `consultation_submitted` | The lead is successfully stored via `/api/leads` — fired after a `2xx` response **and** a real `leadId` comes back in the body | `project_type`, `budget_range` |
 
 Note: there is no `step_number: 7` for `consultation_step_completed` — step 7 (contact info)
 ends in `consultation_submitted` instead, since "completing" that step means submitting.
+
+A submission silently discarded as spam (honeypot filled or the timing heuristic tripped —
+see the README's "Spam protection" section) still gets a `2xx` response so the bot has no
+signal, but with `leadId: null` since nothing was stored. `consultation_submitted` only fires
+when `leadId` is truthy, so a caught bot is never counted as a completed consultation.
 
 ## Attribution
 
