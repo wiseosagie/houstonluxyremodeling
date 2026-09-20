@@ -1,6 +1,6 @@
 export const SITE_NAME = "Houston Luxury Remodeling";
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://www.houstonluxuryremodeling.com";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://houstonluxuryremodeling.com";
 
 // Single source of truth for the public-facing contact address. Override via
 // NEXT_PUBLIC_CONTACT_EMAIL if the inbox ever changes; every component that
