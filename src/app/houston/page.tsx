@@ -6,9 +6,9 @@ import { NEIGHBORHOODS } from "@/lib/constants";
 import { IMAGES } from "@/data/images";
 
 export const metadata: Metadata = {
-  title: "Houston Areas We Serve | River Oaks, Memorial, Tanglewood, West University",
+  title: "Houston Areas We Serve | River Oaks, Memorial, Tanglewood & More",
   description:
-    "Houston Luxury Remodeling currently focuses on River Oaks, Memorial, Tanglewood, and West University — neighborhoods where significant home renovations are common.",
+    "Houston Luxury Remodeling currently focuses on River Oaks, Memorial, Tanglewood, West University, and Afton Oaks — neighborhoods where significant home renovations are common.",
   alternates: { canonical: "/houston" },
 };
 
@@ -21,6 +21,7 @@ const NEIGHBORHOOD_IMAGES = [
   IMAGES.exteriorEntrance,
   IMAGES.livingFormal,
   IMAGES.wholeHomeDining,
+  IMAGES.exteriorDaylight,
 ];
 
 export default function HoustonAreasPage() {
@@ -61,6 +62,12 @@ export default function HoustonAreasPage() {
               <p className="mt-5 text-xs uppercase tracking-widest2 text-bronze-dark">
                 Serving ZIP codes {neighborhood.zipPrefixes.join(", ")}
               </p>
+              <a
+                href={`/${neighborhood.slug}-remodeling`}
+                className="mt-5 inline-block text-sm underline hover:text-bronze-dark"
+              >
+                Full {neighborhood.name} renovation guide
+              </a>
             </div>
             <div
               className={`relative aspect-[4/5] lg:aspect-[3/4] ${

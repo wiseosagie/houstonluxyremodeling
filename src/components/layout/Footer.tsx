@@ -33,7 +33,7 @@ export default function Footer() {
           <ul className="space-y-3 text-sm">
             {NEIGHBORHOODS.map((n) => (
               <li key={n.slug}>
-                <Link href={`/houston#${n.slug}`} className="hover:text-white">
+                <Link href={`/${n.slug}-remodeling`} className="hover:text-white">
                   {n.name}
                 </Link>
               </li>

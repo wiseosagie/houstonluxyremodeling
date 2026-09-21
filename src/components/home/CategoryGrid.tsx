@@ -6,31 +6,31 @@ const CATEGORY_CARDS = [
     name: "Whole Home",
     description: "A coordinated renovation of the entire residence.",
     image: IMAGES.wholeHomeDining,
-    href: "/luxury-remodeling-houston#whole-home",
+    href: "/whole-home-remodeling-houston",
   },
   {
     name: "Kitchen",
     description: "Layout, cabinetry, and stone built for how you live.",
     image: IMAGES.kitchenIsland,
-    href: "/luxury-remodeling-houston#kitchen",
+    href: "/luxury-kitchen-remodeling-houston",
   },
   {
     name: "Primary Suite",
     description: "A private, spa-inspired retreat within the home.",
     image: IMAGES.primarySuiteBedroom,
-    href: "/luxury-remodeling-houston#primary-suite",
+    href: "/primary-suite-remodeling-houston",
   },
   {
     name: "Home Addition",
     description: "New square footage that feels original to the home.",
     image: IMAGES.indoorOutdoorLiving,
-    href: "/luxury-remodeling-houston#home-addition",
+    href: "/home-additions-houston",
   },
   {
     name: "Outdoor Living",
     description: "Pools, kitchens, and living space for Houston's climate.",
     image: IMAGES.poolOutdoorLiving,
-    href: "/luxury-remodeling-houston#outdoor-living",
+    href: "/luxury-outdoor-living-houston",
   },
 ] as const;
 

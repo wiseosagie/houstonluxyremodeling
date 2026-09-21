@@ -82,6 +82,13 @@ export const NEIGHBORHOODS = [
     description:
       "A walkable, tightly-knit community where thoughtful additions and full renovations allow homeowners to stay rather than relocate.",
   },
+  {
+    slug: "afton-oaks",
+    name: "Afton Oaks",
+    zipPrefixes: ["77027"],
+    description:
+      "A deed-restricted, oak-canopied enclave inside Loop 610 near the Galleria, where original mid-century ranch homes sit alongside renovated classics and new custom construction.",
+  },
 ] as const;
 
 export const BUDGET_OPTIONS = [
