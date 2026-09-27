@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { leadSubmissionSchema } from "@/lib/validation";
 import { calculateLeadScore, classifyLead } from "@/lib/leadScoring";
 import { neighborhoodFromZip } from "@/lib/zipNeighborhood";
+import { insertLead } from "@/lib/db";
 import { sendLeadNotificationEmail } from "@/lib/email";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
@@ -59,8 +60,43 @@ export async function POST(request: NextRequest) {
   const createdAt = new Date();
   const leadId = randomUUID();
 
-  // No database — the notification email is the only record of this lead,
-  // so a failed send must be reported as a failed submission.
+  try {
+    insertLead(leadId, {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      zipCode: data.zipCode,
+      neighborhood: neighborhood?.name ?? null,
+      projectType: data.projectType,
+      budgetRange: data.budgetRange,
+      timeline: data.timeline,
+      designStatus: data.designStatus,
+      projectDescription: data.projectDescription,
+      leadScore,
+      leadClassification,
+      source: data.source,
+      medium: data.medium,
+      campaign: data.campaign,
+      content: data.content,
+      term: data.term,
+      landingPage: data.landingPage,
+      referrer: data.referrer,
+    });
+  } catch (error) {
+    // The lead was never persisted — this is the one case where we must not
+    // claim success. No internal error detail is exposed to the client.
+    console.error("[api/leads] Failed to store lead", error);
+    return NextResponse.json(
+      { error: "We were unable to submit your request. Please try again or call us directly." },
+      { status: 500 }
+    );
+  }
+
+  // The lead is safely stored — everything below is best-effort. Email
+  // notification is an optional convenience, never a condition of success:
+  // a missing configuration or a failed send must never lose or roll back
+  // the lead that's already in SQLite.
   const emailResult = await sendLeadNotificationEmail({
     firstName: data.firstName,
     lastName: data.lastName,
@@ -76,16 +112,17 @@ export async function POST(request: NextRequest) {
     leadScore,
     leadClassification,
     source: data.source,
+    medium: data.medium,
+    campaign: data.campaign,
+    content: data.content,
+    term: data.term,
     landingPage: data.landingPage,
+    referrer: data.referrer,
     createdAt,
   });
 
   if (!emailResult.sent) {
-    console.error(`[api/leads] Notification email failed for lead ${leadId}: ${emailResult.error}`);
-    return NextResponse.json(
-      { error: "We were unable to submit your request. Please try again or call us directly." },
-      { status: 502 }
-    );
+    console.error(`[api/leads] Lead ${leadId} stored successfully but notification email failed: ${emailResult.error}`);
   }
 
   return NextResponse.json({ success: true, leadId }, { status: 201 });

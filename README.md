@@ -14,8 +14,8 @@ disclosure shown on the live site.
 | Framework | Next.js 15 (App Router) + TypeScript | Fast to deploy, excellent SEO primitives (metadata API, sitemap/robots as code, RSC for fast first paint), one deployment target for pages + API route |
 | Styling | Tailwind CSS | Rapid, consistent design-system implementation without a component library dependency |
 | Database | SQLite (Node's built-in `node:sqlite`) | Zero-config, file-based, no external service or account needed for an MVP's lead volume. See [`src/lib/db.ts`](src/lib/db.ts). |
-| Email | Resend (HTTP API, no SDK) — **dormant for Phase 1 launch**, not required | Code remains in place ([`src/lib/email.ts`](src/lib/email.ts)) but automated lead-notification email is intentionally not configured for the Phase 1 launch; the SQLite `leads` table is the system of record. The app runs normally with `RESEND_API_KEY`/`LEAD_NOTIFICATION_EMAIL` unset — see "Email notifications" below. |
-| Hosting | Vercel (or any Node 24+ host) | First-class Next.js support; `node:sqlite` requires Node 24+ |
+| Email | Resend (HTTP API, no SDK) — **optional, non-blocking notification only** | See [`src/lib/email.ts`](src/lib/email.ts). The SQLite `leads` table is the system of record; the notification email is a best-effort convenience layered on top. A missing config or a failed send is logged and never blocks, loses, or rolls back a stored lead — see "Email notifications" below. |
+| Hosting | Azure Static Web Apps | Configured deploy target — see [`.github/workflows/azure-static-web-apps-gray-tree-00f55e310.yml`](.github/workflows/azure-static-web-apps-gray-tree-00f55e310.yml). `node:sqlite` requires Node 24+; confirm the Azure resource's Next.js hybrid/SSR support actually executes the dynamic `/api/leads` route in production — see "Production deployment" below. |
 | Validation | Zod | Shared shape between the form and the server-side API validation |
 
 This is intentionally **not** over-engineered: no CMS, no ORM, no state-management library, no
@@ -69,7 +69,7 @@ See [`.env.example`](.env.example) for the full, commented list. Summary:
 | Variable | Required for | Notes |
 |---|---|---|
 | `SQLITE_DB_PATH` | Storing leads | Optional — defaults to `./data/app.db`. The file and its parent directory are created automatically on first use. |
-| `RESEND_API_KEY` / `LEAD_NOTIFICATION_EMAIL` | Lead notification email | **Not required for Phase 1 launch.** Leave unset — the app stores every lead in SQLite regardless; a missing email config only skips the (currently dormant) notification email and logs `email_not_configured`. See "Email notifications" below. |
+| `RESEND_API_KEY` / `LEAD_NOTIFICATION_EMAIL` | Lead notification email | **Optional.** Leave unset — the app stores every lead in SQLite regardless; a missing config, or any failure from Resend, only skips/fails the notification email (logged, e.g. `email_not_configured`, `resend_401`, `network_error`) and never affects the stored lead. See "Email notifications" below. |
 | `EMAIL_FROM` | Lead notification email | Only relevant if the above two are set. Defaults to Resend's shared sandbox address. |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Analytics | **GA4 Measurement ID required from you.** Entirely inert (no script loads, no events fire) until this is set. Get it from GA4 Admin → Data Streams → your web stream. |
 | `NEXT_PUBLIC_SITE_URL` | Canonical URLs, sitemap, OG metadata | Set to the real production domain before launch |
@@ -79,28 +79,48 @@ See [`.env.example`](.env.example) for the full, commented list. Summary:
 
 ## Production deployment
 
-1. **Database**: none needed — SQLite is a file on disk. On a platform with an ephemeral
-   filesystem (e.g. most serverless/edge hosts), mount a persistent volume and point
-   `SQLITE_DB_PATH` at it, or the `leads` table will reset on every deploy/cold start. This is
-   the one deployment detail that matters more with SQLite than it would with a hosted
-   database — plan for it before launch.
-2. **Vercel** (or any Node 24+ host): import this repository, set the environment variables
-   above, and deploy. No build configuration is needed beyond the default Next.js preset.
-3. Point the `houstonluxuryremodeling.com` DNS at your host and set `NEXT_PUBLIC_SITE_URL`
-   accordingly.
+Target: **Azure Static Web Apps** — see
+[`.github/workflows/azure-static-web-apps-gray-tree-00f55e310.yml`](.github/workflows/azure-static-web-apps-gray-tree-00f55e310.yml).
+`NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_GA_MEASUREMENT_ID`, `NEXT_PUBLIC_GSC_VERIFICATION`,
+`NEXT_PUBLIC_CONTACT_PHONE`, and `NEXT_PUBLIC_CONTACT_EMAIL` are wired through as build-time
+`vars` in that workflow; set them in the repo's GitHub Actions variables.
+
+1. **Database — the requirement that matters most.** SQLite is a single file on disk
+   (`SQLITE_DB_PATH`, default `./data/app.db`). For leads to persist, the Azure Static Web
+   Apps compute plan backing this app must give the running process **writable, persistent
+   local disk that survives between requests and across deploys/restarts** — not an ephemeral
+   or read-only filesystem. This has **not been verified against the actual Azure resource**
+   as part of this fix; confirm it directly (see "Azure Static Web Apps" note below) before
+   relying on it for real leads. If the plan's filesystem is ephemeral, `SQLITE_DB_PATH` must
+   point at a mounted persistent volume, or leads will silently reset on every cold start —
+   this repo does not attempt to solve that for you.
+2. **Azure Static Web Apps and the dynamic `/api/leads` route.** This app ships a standard
+   Next.js hybrid build (no `output: "export"`/`"standalone"`) with `/api/leads` as a
+   server-rendered route, not a static one. Whether Azure Static Web Apps' Next.js
+   integration actually executes that route in production depends on the plan/tier and how
+   the resource is configured — **this cannot be confirmed from the repository alone.**
+   Submit one real test lead against the deployed URL after every deploy that touches
+   `src/app/api/leads/route.ts` or `src/lib/db.ts`, and query the deployed database (or check
+   logs) to confirm it was actually persisted, not just that the HTTP response looked
+   successful.
+3. Point the `houstonluxuryremodeling.com` DNS at Azure and set `NEXT_PUBLIC_SITE_URL`
+   accordingly (the apex domain — see `src/middleware.ts` for the www → apex redirect).
 4. Create Google Analytics 4 and Google Search Console properties for the live domain, set
-   `NEXT_PUBLIC_GA_MEASUREMENT_ID` and `NEXT_PUBLIC_GSC_VERIFICATION`, and redeploy.
+   `NEXT_PUBLIC_GA_MEASUREMENT_ID` and `NEXT_PUBLIC_GSC_VERIFICATION` as GitHub Actions
+   variables, and redeploy.
 5. Confirm the `NEXT_PUBLIC_CONTACT_EMAIL` inbox exists and is monitored.
+6. If you want lead-notification email, set `RESEND_API_KEY` and `LEAD_NOTIFICATION_EMAIL` —
+   optional, and safe to add or remove at any time without affecting lead storage.
 
 ## Database schema
 
 Defined in [`src/lib/db.ts`](src/lib/db.ts) (Node's built-in `node:sqlite`, no external
 dependency). The `leads` table includes every field specified in the brief (contact info,
 project details, lead score/classification, full UTM attribution, and a `status` pipeline
-column defaulting to `NEW`) plus `internal_notes` / `assigned_partner` for manual triage. A
-small `lead_rate_limits` table (IP hash + timestamp only, no PII) backs the rate limiter. The
+column defaulting to `NEW`) plus `internal_notes` / `assigned_partner` for manual triage. The
 schema is created automatically on first run (`create table if not exists`) — no separate
-migration step.
+migration step. Rate limiting (below) is intentionally **in-memory only**, not SQLite-backed —
+there is no `lead_rate_limits` table.
 
 The schema is intentionally additive-friendly for Phase 2 (see below) — new columns or tables
 (e.g., a `partners` table) can be added directly in `db.ts`.
@@ -113,15 +133,20 @@ classification thresholds, and how to recalibrate after 90 days. Implementation:
 
 ## Email notifications
 
-**Not configured for Phase 1 launch, by design.** The SQLite `leads` table is the system of
-record; check it directly for new submissions. The Resend integration in
-[`src/lib/email.ts`](src/lib/email.ts) is left in place but dormant — `sendLeadNotificationEmail`
-returns `{ sent: false, error: "email_not_configured" }` and logs a `console.error` when
-`RESEND_API_KEY` or `LEAD_NOTIFICATION_EMAIL` is unset, and the API route
-([`src/app/api/leads/route.ts`](src/app/api/leads/route.ts)) always stores the lead first and
-treats that failure as non-fatal — a missing or failed email never loses or blocks a lead. If
-automated notifications are wanted in a later phase, set `RESEND_API_KEY`,
-`LEAD_NOTIFICATION_EMAIL`, and optionally `EMAIL_FROM`.
+**Optional, non-blocking, by design.** The SQLite `leads` table is the system of record; the
+notification email in [`src/lib/email.ts`](src/lib/email.ts) is a best-effort convenience
+layered on top, sent via Resend's HTTP API. The API route
+([`src/app/api/leads/route.ts`](src/app/api/leads/route.ts)) always inserts the lead into
+SQLite **first**, and only attempts the notification afterward:
+
+- If `RESEND_API_KEY` or `LEAD_NOTIFICATION_EMAIL` is unset, `sendLeadNotificationEmail`
+  returns `{ sent: false, error: "email_not_configured" }` and logs a `console.error`.
+- If Resend is configured but the request times out, throws, has a network failure, or
+  returns a non-2xx response, the same thing happens (`network_error` / `resend_<status>`).
+- In every case, the response to the homeowner is still `201` with a real `leadId` — a missing
+  or failed email **never loses, blocks, or rolls back a stored lead.** Include
+  `RESEND_API_KEY` and `LEAD_NOTIFICATION_EMAIL` (and optionally `EMAIL_FROM`) whenever you
+  want the notification; the lead pipeline behaves identically either way.
 
 ## Spam protection
 
@@ -129,7 +154,7 @@ Three independent layers, all server-side in
 [`src/app/api/leads/route.ts`](src/app/api/leads/route.ts):
 
 1. **Rate limiting** ([`src/lib/rateLimit.ts`](src/lib/rateLimit.ts)) — max 5 submissions per
-   IP hash per rolling hour, backed by SQLite plus an in-memory first pass.
+   IP hash per rolling hour, in-memory only (see "Known limitations" below).
 2. **Honeypot** — a hidden `website` field (`src/components/consultation/steps/StepContact.tsx`)
    that's visually hidden, `tabindex="-1"`, and `aria-hidden` so real visitors never see or
    reach it; a bot that fills every field populates it.
@@ -147,13 +172,18 @@ consultation.
 
 `npm test` runs [`test/leads-api.test.ts`](test/leads-api.test.ts) via Node's built-in
 `node:test` runner (no test framework dependency) directly against the `POST /api/leads`
-handler, using an in-memory SQLite database. It covers: a normal submission, the honeypot
-being filled, a genuinely invalid field still returning a normal 400, the timing heuristic,
-lead-score correctness, and rate limiting (6th rapid request from one IP gets a 429; a
-different IP is unaffected). See [`test/register.mjs`](test/register.mjs) /
-[`test/alias-loader.mjs`](test/alias-loader.mjs) for the small amount of plumbing this needs
-(resolving the `@/*` path alias and Next's extensionless subpath imports under plain Node,
-and the `--conditions=react-server` flag so `import "server-only"` no-ops instead of throwing).
+handler, using an in-memory SQLite database (`SQLITE_DB_PATH=":memory:"`, never the real
+`data/app.db` file). It covers: a normal submission (stored, real ID), the honeypot being
+filled (nothing stored), the timing heuristic (nothing stored), a genuinely invalid field
+still returning a normal 400 (nothing stored), rate limiting (6th rapid request from one IP
+gets a 429; a different IP is unaffected), submission succeeding with no Resend credentials
+configured, submission succeeding when a configured Resend call fails, full UTM attribution
+being stored on the row, and lead score/classification being correct through the complete
+API → database path (not just the scoring function in isolation). See
+[`test/register.mjs`](test/register.mjs) / [`test/alias-loader.mjs`](test/alias-loader.mjs)
+for the small amount of plumbing this needs (resolving the `@/*` path alias and Next's
+extensionless subpath imports under plain Node, and the `--conditions=react-server` flag so
+`import "server-only"` no-ops instead of throwing).
 
 ## Imagery
 
@@ -173,10 +203,9 @@ how UTM attribution is captured and preserved through the funnel.
 
 ## Testing
 
-See [`docs/TESTING_CHECKLIST.md`](docs/TESTING_CHECKLIST.md) for what was verified
-automatically this session (full funnel walkthrough, all pages at desktop + mobile, console
-error checks, dependency security audit) versus what requires manual verification with live
-credentials before launch.
+See [`docs/TESTING_CHECKLIST.md`](docs/TESTING_CHECKLIST.md) for exactly what has and hasn't
+actually been run against the current codebase, and what still requires manual verification
+before launch.
 
 ## Known limitations
 
@@ -195,22 +224,27 @@ credentials before launch.
 - **No phone number.** `NEXT_PUBLIC_CONTACT_PHONE` is left blank by design — nothing is
   fabricated. Click-to-call UI and the `phone_clicked` event simply don't render until a real,
   monitored number is added.
-- **Rate limiting is best-effort for an MVP**, not enterprise-grade bot defense: an in-memory
-  check (per warm process) plus a SQLite-backed IP-hash counter, plus a honeypot field and a
-  minimum-fill-time heuristic (see "Spam protection" above). Sufficient to blunt naive spam
-  bots; a determined attacker could still get through. Reassess if spam becomes a real
-  problem.
-- **SQLite on an ephemeral filesystem loses data.** See the deployment note above — this only
-  matters on hosts that don't persist local disk between deploys/restarts.
+- **Rate limiting is best-effort for an MVP**, not enterprise-grade bot defense: purely
+  in-memory (per warm process, not shared across serverless instances, resets on cold start),
+  plus a honeypot field and a minimum-fill-time heuristic (see "Spam protection" above).
+  Sufficient to blunt naive spam bots; a determined attacker could still get through, and a
+  burst of legitimate visitors whose requests all arrive without a usable `x-forwarded-for`
+  header would collapse into one shared bucket. Reassess if spam or false-positive blocking
+  becomes a real problem; do not add a distributed rate limiter without a concrete need.
+- **SQLite requires persistent, writable local disk on the host.** See "Production
+  deployment" above — this has not been verified against the actual Azure Static Web Apps
+  resource. On a host with an ephemeral filesystem, the `leads` table resets on every
+  deploy/cold start, silently losing every lead since the last restart.
 - **No ESLint config is present**, so `npm run lint` currently prompts for interactive setup
   rather than running. Pre-existing gap, not introduced by this round of changes.
 - **ZIP → neighborhood matching is prefix-based**, not a real geocoding service. It's used
   only for lead-scoring convenience and internal notes, never to block submission.
-- **Cross-browser testing this session was Chromium-only** (headless, via Playwright). Safari
-  /iOS and a real screen reader pass are still outstanding — see the testing checklist.
-- **Next.js dev-server image latency**: the first request for a given on-demand image size is
-  slow in `next dev` (no persistent transform cache). This is a dev-only artifact, not a
-  production issue — see the note in `docs/TESTING_CHECKLIST.md`.
+- **Cross-browser and screen-reader testing is still outstanding.** No Safari/iOS pass and no
+  real VoiceOver/NVDA pass have been performed against the current build.
+- **No Lighthouse/visual mobile QA has been run against this build.** Prior documentation in
+  this repo claimed specific Lighthouse scores and a Playwright-based mobile pass; neither
+  `lighthouse` nor `playwright` is a dependency in this repository, so those claims could not
+  be reproduced and should not be relied on. Run both before launch.
 
 ## Phase 2 recommendations
 

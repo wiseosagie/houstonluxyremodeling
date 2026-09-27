@@ -27,3 +27,8 @@ next-env.d.ts
 
 # vercel
 .vercel
+
+# local SQLite lead database — contains homeowner PII, must never be committed
+/data/*.db
+/data/*.db-wal
+/data/*.db-shm

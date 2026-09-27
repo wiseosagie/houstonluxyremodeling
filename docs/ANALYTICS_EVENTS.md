@@ -30,10 +30,14 @@ UTM parameters (`utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_
 captured on first landing by
 [`src/components/analytics/AttributionInit.tsx`](../src/components/analytics/AttributionInit.tsx),
 stored in `sessionStorage` (`src/lib/attribution.ts`), and preserved across client-side
-navigation. They're read again at submission time and sent to `/api/leads`, which stores them
-on the `leads` row (`source`, `medium`, `campaign`, `content`, `term`, `landing_page`,
-`referrer`) — so attribution survives even if the visitor lands on `/`, browses for a while,
-and submits the form several pages later.
+navigation. They're read again at submission time and sent to `/api/leads`, which stores all
+seven fields (`source`, `medium`, `campaign`, `content`, `term`, `landing_page`, `referrer`)
+on the `leads` row in SQLite (`src/lib/db.ts`) — so attribution survives even if the visitor
+lands on `/`, browses for a while, and submits the form several pages later. The `leads` table
+is the source of truth for attribution; it does not depend on GA4. If a Resend notification is
+configured, the same seven fields are also included in the internal notification email
+(`src/lib/email.ts`) for convenience — that email is not required for attribution to be
+captured.
 
 ## Known limitation
 

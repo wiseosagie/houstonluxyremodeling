@@ -1,0 +1,182 @@
+SEO / INDEXING FIX — EXACT COMMIT SCOPE
+Prepared 2026-09-26 during the final pre-deployment review. Nothing has been staged.
+
+How files were classified (git evidence)
+-----------------------------------------
+- At the start of the SEO work (2026-09-26), `git status` listed only the files under
+  UNRELATED CHANGES below. Every SEO code file had no changes against HEAD then, so the
+  SEO files hold only SEO hunks. Checked with `git diff` on each file.
+- File modification times agree with this:
+  * the unrelated work is dated 2026-09-20 18:38–18:45;
+  * the SEO edits are dated 2026-09-26 12:39–12:48, plus the review edits below;
+  * src/middleware.ts was changed at 2026-09-26 18:26, after the SEO pass, and is not
+    part of it.
+- RESULT: NO file needs partial staging. Every SEO file can be staged whole.
+
+
+CODE FILES  [SEO CHANGE]
+------------------------
+src/lib/constants.ts                    sanitized CONTACT_PHONE / GSC_VERIFICATION; OPEN_GRAPH_DEFAULTS
+src/app/layout.tsx                      removes inherited og:url; uses sanitized values
+src/components/shared/PhoneLink.tsx     uses sanitized CONTACT_PHONE
+src/components/layout/Footer.tsx        adds "Guides" footer link
+scripts/verify-production-seo.mjs       NEW: read-only post-deploy verification script
+
+Per-page og:url. Each file adds one `openGraph` line below the unchanged canonical,
+plus the import:
+src/app/page.tsx
+src/app/houston/page.tsx
+src/app/how-it-works/page.tsx
+src/app/privacy/page.tsx
+src/app/terms/page.tsx
+src/app/matching-service-disclosure/page.tsx
+src/app/whole-home-remodeling-houston/page.tsx
+src/app/luxury-kitchen-remodeling-houston/page.tsx
+src/app/primary-suite-remodeling-houston/page.tsx
+src/app/home-additions-houston/page.tsx
+src/app/luxury-outdoor-living-houston/page.tsx
+src/app/luxury-bathroom-remodeling-houston/page.tsx
+src/app/river-oaks-remodeling/page.tsx
+src/app/memorial-remodeling/page.tsx
+src/app/tanglewood-remodeling/page.tsx
+src/app/west-university-remodeling/page.tsx
+src/app/afton-oaks-remodeling/page.tsx
+src/app/guides/page.tsx
+src/app/guides/home-remodeling-cost-houston/page.tsx
+src/app/guides/whole-home-remodel-cost-houston/page.tsx
+src/app/guides/kitchen-remodel-cost-houston/page.tsx
+src/app/guides/bathroom-remodel-cost-houston/page.tsx
+src/app/guides/how-to-choose-remodeling-contractor-houston/page.tsx
+src/app/guides/remodel-or-rebuild-houston/page.tsx
+
+
+CONTENT FILES  [SEO CHANGE: og:url plus visible content or link changes]
+-------------------------------------------------------------------------
+src/app/consultation/page.tsx           og:url + "What Happens Next" section (existing copy)
+src/app/contact/page.tsx                og:url + service-area sentence
+src/app/luxury-remodeling-houston/page.tsx   og:url + link to the bathroom page
+src/components/home/CategoryGrid.tsx    homepage links to the bathroom page and /guides
+
+(3 + 24 = all 27 page files. None needs partial staging.)
+
+
+AUDIT / REPORT FILES  [GENERATED REPORT]
+----------------------------------------
+Optional. These are not needed for the site to work. Commit them only if you want the
+audit trail in the repository.
+NOTE: SEO_FIX_IMPLEMENTATION_REPORT.md, OWNER_INFORMATION_NEEDED.md and
+PRE_DEPLOYMENT_MANUAL_CHECKLIST.md record the current public contact email (observed on
+the live site). Review them before committing them to a shared repository.
+
+SEO_INDEXING_AUDIT.md
+seo-audit-results.json
+discovered_urls.txt
+SEO_FIX_IMPLEMENTATION_REPORT.md
+OWNER_INFORMATION_NEEDED.md
+GSC_URL_COMPARISON.csv
+SEO_COMMIT_SCOPE.txt
+PRE_DEPLOYMENT_MANUAL_CHECKLIST.md
+FINAL_SEO_PREDEPLOYMENT_REVIEW.md
+
+
+MIXED / REQUIRES MANUAL REVIEW  [NOT in the SEO commit]
+--------------------------------------------------------
+src/middleware.ts
+  - Changed 2026-09-26 18:26, after the SEO pass. Not written or reviewed as part of it.
+  - What it does: reads `x-forwarded-host` before `host` and forces `https:` on the
+    www → apex redirect.
+  - Assessment: harmless and plausibly correct for Azure's proxy. It CANNOT fix the
+    www duplicate for cached pages: Azure serves prerendered pages from its cache before
+    middleware runs (seen in production headers, x-ms-nextjs-render: cache). The Azure
+    default-domain setting is still required.
+  - The local build and tests for this review ran with this change present, and all
+    passed.
+  - Recommendation: commit it separately, with its own message, if you want it.
+
+
+UNRELATED CHANGES  [must NOT be in the SEO commit]
+---------------------------------------------------
+.env.example
+.gitignore
+README.md
+docs/ANALYTICS_EVENTS.md
+docs/LEAD_SCORING.md
+docs/TESTING_CHECKLIST.md
+src/app/api/leads/route.ts
+src/lib/email.ts
+src/lib/db.ts                           (untracked)
+test/leads-api.test.ts
+data/app.db                             !! ALREADY STAGED (deletion). See the warning below.
+
+
+!! WARNING: STAGED DELETION ALREADY IN THE INDEX
+------------------------------------------------
+`git diff --cached --stat` shows `data/app.db | Bin 40960 -> 0 bytes` staged before this
+review. A plain `git commit` after the `git add` commands below WOULD INCLUDE THAT
+DELETION in the SEO commit.
+
+Use either option.
+
+Option A: unstage it first. This only moves it out of the index. The file stays
+deleted on disk, and nothing is lost:
+    git restore --staged data/app.db
+
+Option B: leave the index alone and commit only named paths, using
+`git commit -- <paths>` (see the end of this file).
+
+
+SUGGESTED STAGING COMMANDS  (NOT executed)
+------------------------------------------
+# 0. Check what is already staged. Handle data/app.db as described above.
+git diff --cached --stat
+
+# 1. Code
+git add src/lib/constants.ts
+git add src/app/layout.tsx
+git add src/components/shared/PhoneLink.tsx
+git add src/components/layout/Footer.tsx
+git add src/components/home/CategoryGrid.tsx
+git add scripts/verify-production-seo.mjs
+
+# 2. Pages (all 27; no partial staging needed)
+git add src/app/page.tsx
+git add src/app/luxury-remodeling-houston/page.tsx
+git add src/app/houston/page.tsx
+git add src/app/how-it-works/page.tsx
+git add src/app/consultation/page.tsx
+git add src/app/privacy/page.tsx
+git add src/app/terms/page.tsx
+git add src/app/contact/page.tsx
+git add src/app/matching-service-disclosure/page.tsx
+git add src/app/whole-home-remodeling-houston/page.tsx
+git add src/app/luxury-kitchen-remodeling-houston/page.tsx
+git add src/app/primary-suite-remodeling-houston/page.tsx
+git add src/app/home-additions-houston/page.tsx
+git add src/app/luxury-outdoor-living-houston/page.tsx
+git add src/app/luxury-bathroom-remodeling-houston/page.tsx
+git add src/app/river-oaks-remodeling/page.tsx
+git add src/app/memorial-remodeling/page.tsx
+git add src/app/tanglewood-remodeling/page.tsx
+git add src/app/west-university-remodeling/page.tsx
+git add src/app/afton-oaks-remodeling/page.tsx
+git add src/app/guides/page.tsx
+git add src/app/guides/home-remodeling-cost-houston/page.tsx
+git add src/app/guides/whole-home-remodel-cost-houston/page.tsx
+git add src/app/guides/kitchen-remodel-cost-houston/page.tsx
+git add src/app/guides/bathroom-remodel-cost-houston/page.tsx
+git add src/app/guides/how-to-choose-remodeling-contractor-houston/page.tsx
+git add src/app/guides/remodel-or-rebuild-houston/page.tsx
+
+# 3. Optional: reports (read the note above first)
+# git add SEO_INDEXING_AUDIT.md seo-audit-results.json discovered_urls.txt
+# git add SEO_FIX_IMPLEMENTATION_REPORT.md OWNER_INFORMATION_NEEDED.md GSC_URL_COMPARISON.csv
+# git add SEO_COMMIT_SCOPE.txt PRE_DEPLOYMENT_MANUAL_CHECKLIST.md FINAL_SEO_PREDEPLOYMENT_REVIEW.md
+
+# 4. Verify before committing. Expect exactly 33 code/page files (plus any reports you
+#    added), and NO data/app.db, middleware, api, email, db, test, docs, README or env files:
+git diff --cached --stat
+
+# If you chose Option B instead of unstaging data/app.db, commit the named paths only:
+#   git commit -m "..." -- src/lib/constants.ts src/app/layout.tsx ... (the same paths as above)
+
+# Never use `git add .` or `git add -A` here: they would pull in all the unrelated work.

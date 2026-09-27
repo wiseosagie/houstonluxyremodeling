@@ -16,7 +16,12 @@ type LeadNotificationInput = {
   leadScore: number;
   leadClassification: LeadClassification;
   source: string;
+  medium: string;
+  campaign: string;
+  content: string;
+  term: string;
   landingPage: string;
+  referrer: string;
   createdAt: Date;
 };
 
@@ -58,8 +63,13 @@ function buildEmailHtml(lead: LeadNotificationInput) {
           ${row("Design status", lead.designStatus)}
           ${row("Lead score", String(lead.leadScore))}
           ${row("Classification", lead.leadClassification)}
-          ${row("Traffic source", lead.source || "direct")}
+          ${row("Source", lead.source || "direct")}
+          ${row("Medium", lead.medium || "n/a")}
+          ${row("Campaign", lead.campaign || "n/a")}
+          ${row("Content", lead.content || "n/a")}
+          ${row("Term", lead.term || "n/a")}
           ${row("Landing page", lead.landingPage || "n/a")}
+          ${row("Referrer", lead.referrer || "n/a")}
           ${row("Date/time", lead.createdAt.toLocaleString("en-US", { timeZone: "America/Chicago" }) + " CT")}
         </table>
         ${
@@ -90,8 +100,13 @@ function buildEmailText(lead: LeadNotificationInput) {
     `Project description: ${lead.projectDescription || "(none provided)"}`,
     `Lead score: ${lead.leadScore}`,
     `Classification: ${lead.leadClassification}`,
-    `Traffic source: ${lead.source || "direct"}`,
-    `Landing page: ${lead.landingPage || "n/a"}`,
+    `Source: ${lead.source || "direct"}`,
+    `Medium: ${lead.medium || "n/a"}`,
+    `Campaign: ${lead.campaign || "n/a"}`,
+    `Content: ${lead.content || "n/a"}`,
+    `Term: ${lead.term || "n/a"}`,
+    `Landing Page: ${lead.landingPage || "n/a"}`,
+    `Referrer: ${lead.referrer || "n/a"}`,
     `Date/time: ${lead.createdAt.toLocaleString("en-US", { timeZone: "America/Chicago" })} CT`,
   ].join("\n");
 }

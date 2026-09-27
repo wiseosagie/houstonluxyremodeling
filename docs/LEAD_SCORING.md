@@ -60,6 +60,7 @@ All tunable values live in `BUDGET_SCORES`, `TIMELINE_SCORES`, `PROJECT_TYPE_SCO
    after ~90 days of real traffic.
 2. Check whether `PRIORITY` leads are actually converting to `WON` at a meaningfully higher
    rate than `QUALIFIED` leads. If not, adjust weights or thresholds.
-3. Change the constants in one file — nothing else in the codebase needs to change, since the
-   API route, admin views, and email notification all read `lead_score` /
-   `lead_classification` off the stored row rather than recomputing.
+3. Change the constants in one file — nothing else needs to change going forward, since new
+   leads are always scored at submission time and the score/classification are then read
+   directly off the stored `leads` row (not recomputed) by anything that needs them later,
+   such as a future internal leads view.
