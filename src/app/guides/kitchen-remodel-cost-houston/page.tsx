@@ -3,13 +3,14 @@ import Breadcrumbs from "@/components/shared/Breadcrumbs";
 import CTASection from "@/components/shared/CTASection";
 import CostTable from "@/components/shared/CostTable";
 import PageFAQ from "@/components/shared/PageFAQ";
-import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { SITE_NAME, SITE_URL, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Kitchen Remodel Cost Houston (2026) | By Renovation Tier",
   description:
     "Kitchen remodel cost in Houston, broken down by tier — cosmetic refresh, mid-range renovation, and luxury custom kitchen — with what separates each.",
   alternates: { canonical: "/guides/kitchen-remodel-cost-houston" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/guides/kitchen-remodel-cost-houston" },
 };
 
 const PUBLISHED = "2026-09-20";

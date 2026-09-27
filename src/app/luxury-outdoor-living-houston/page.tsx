@@ -5,13 +5,14 @@ import PrimaryCta from "@/components/shared/PrimaryCta";
 import ImageTextSection from "@/components/shared/ImageTextSection";
 import PageFAQ from "@/components/shared/PageFAQ";
 import { IMAGES } from "@/data/images";
-import { SITE_NAME, SITE_URL, NEIGHBORHOODS } from "@/lib/constants";
+import { SITE_NAME, SITE_URL, NEIGHBORHOODS, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Luxury Outdoor Living Houston | Outdoor Kitchens & Patios",
   description:
     "Planning outdoor living space in Houston — covered patios, outdoor kitchens, and pool-adjacent renovations designed around the region's climate and drainage.",
   alternates: { canonical: "/luxury-outdoor-living-houston" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/luxury-outdoor-living-houston" },
 };
 
 const serviceJsonLd = {

@@ -5,13 +5,14 @@ import PrimaryCta from "@/components/shared/PrimaryCta";
 import ImageTextSection from "@/components/shared/ImageTextSection";
 import PageFAQ from "@/components/shared/PageFAQ";
 import { IMAGES } from "@/data/images";
-import { SITE_NAME, SITE_URL, NEIGHBORHOODS } from "@/lib/constants";
+import { SITE_NAME, SITE_URL, NEIGHBORHOODS, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Whole Home Remodeling Houston | Whole-House Renovation Guide",
   description:
     "Planning a whole-home remodel in Houston? A practical guide to scope, phasing, structural and MEP considerations, and budgeting for a full-house renovation.",
   alternates: { canonical: "/whole-home-remodeling-houston" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/whole-home-remodeling-houston" },
 };
 
 const serviceJsonLd = {

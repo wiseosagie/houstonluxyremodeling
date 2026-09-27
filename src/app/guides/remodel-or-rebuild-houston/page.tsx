@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import Breadcrumbs from "@/components/shared/Breadcrumbs";
 import CTASection from "@/components/shared/CTASection";
 import PageFAQ from "@/components/shared/PageFAQ";
-import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { SITE_NAME, SITE_URL, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Remodel vs. Rebuild in Houston | How to Decide",
   description:
     "Weighing a major renovation against demolition and new construction in Houston — structural condition, cost, zoning, and how to think through the decision.",
   alternates: { canonical: "/guides/remodel-or-rebuild-houston" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/guides/remodel-or-rebuild-houston" },
 };
 
 const PUBLISHED = "2026-09-20";

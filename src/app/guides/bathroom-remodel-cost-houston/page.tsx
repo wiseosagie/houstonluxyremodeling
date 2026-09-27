@@ -3,13 +3,14 @@ import Breadcrumbs from "@/components/shared/Breadcrumbs";
 import CTASection from "@/components/shared/CTASection";
 import CostTable from "@/components/shared/CostTable";
 import PageFAQ from "@/components/shared/PageFAQ";
-import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { SITE_NAME, SITE_URL, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Bathroom Remodel Cost Houston (2026) | By Renovation Tier",
   description:
     "Bathroom remodel cost in Houston, broken down by tier — cosmetic refresh, standard renovation, and full luxury transformation — with what separates each.",
   alternates: { canonical: "/guides/bathroom-remodel-cost-houston" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/guides/bathroom-remodel-cost-houston" },
 };
 
 const PUBLISHED = "2026-09-20";

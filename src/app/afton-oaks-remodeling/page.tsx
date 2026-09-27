@@ -5,12 +5,14 @@ import PrimaryCta from "@/components/shared/PrimaryCta";
 import ImageTextSection from "@/components/shared/ImageTextSection";
 import PageFAQ from "@/components/shared/PageFAQ";
 import { IMAGES } from "@/data/images";
+import { OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Afton Oaks Remodeling | Renovation Planning Guide",
   description:
     "Planning a renovation in Afton Oaks — deed restrictions, architectural review, and what homeowners in this Inner Loop, Galleria-area neighborhood should know.",
   alternates: { canonical: "/afton-oaks-remodeling" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/afton-oaks-remodeling" },
 };
 
 const FAQS = [

@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Breadcrumbs from "@/components/shared/Breadcrumbs";
 import CTASection from "@/components/shared/CTASection";
+import { OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Houston Remodeling Guides | Cost & Planning Resources",
   description:
     "Planning and cost guides for Houston homeowners considering a significant renovation — budgeting, contractor selection, and remodel-vs-rebuild decisions.",
   alternates: { canonical: "/guides" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/guides" },
 };
 
 const GUIDES = [

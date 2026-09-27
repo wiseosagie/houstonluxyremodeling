@@ -5,13 +5,14 @@ import PrimaryCta from "@/components/shared/PrimaryCta";
 import ImageTextSection from "@/components/shared/ImageTextSection";
 import PageFAQ from "@/components/shared/PageFAQ";
 import { IMAGES } from "@/data/images";
-import { SITE_NAME, SITE_URL, NEIGHBORHOODS } from "@/lib/constants";
+import { SITE_NAME, SITE_URL, NEIGHBORHOODS, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Bathroom Remodeling Houston | Luxury & Custom Bathroom Guide",
   description:
     "Planning a bathroom renovation in Houston — from a standard remodel to a full luxury transformation. Layout, plumbing, materials, and what separates each tier.",
   alternates: { canonical: "/luxury-bathroom-remodeling-houston" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/luxury-bathroom-remodeling-houston" },
 };
 
 const serviceJsonLd = {

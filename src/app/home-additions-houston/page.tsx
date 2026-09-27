@@ -5,13 +5,14 @@ import PrimaryCta from "@/components/shared/PrimaryCta";
 import ImageTextSection from "@/components/shared/ImageTextSection";
 import PageFAQ from "@/components/shared/PageFAQ";
 import { IMAGES } from "@/data/images";
-import { SITE_NAME, SITE_URL, NEIGHBORHOODS } from "@/lib/constants";
+import { SITE_NAME, SITE_URL, NEIGHBORHOODS, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Home Additions Houston | Second-Story & Room Addition Guide",
   description:
     "Planning a home addition in Houston — second-story additions, primary suite wings, and the foundation, drainage, and permitting factors that shape what's possible.",
   alternates: { canonical: "/home-additions-houston" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/home-additions-houston" },
 };
 
 const serviceJsonLd = {

@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import Breadcrumbs from "@/components/shared/Breadcrumbs";
 import CTASection from "@/components/shared/CTASection";
 import PageFAQ from "@/components/shared/PageFAQ";
-import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { SITE_NAME, SITE_URL, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Remodeling Contractors in Houston | How to Choose One",
   description:
     "Searching for remodeling contractors in Houston? A due-diligence guide covering licensing, insurance, references, contracts, and the questions worth asking before you hire.",
   alternates: { canonical: "/guides/how-to-choose-remodeling-contractor-houston" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/guides/how-to-choose-remodeling-contractor-houston" },
 };
 
 const PUBLISHED = "2026-09-20";

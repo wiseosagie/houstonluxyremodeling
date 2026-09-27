@@ -5,7 +5,14 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import AttributionInit from "@/components/analytics/AttributionInit";
-import { SITE_NAME, SITE_URL, NEIGHBORHOODS } from "@/lib/constants";
+import {
+  SITE_NAME,
+  SITE_URL,
+  NEIGHBORHOODS,
+  CONTACT_PHONE,
+  GSC_VERIFICATION,
+  OPEN_GRAPH_DEFAULTS,
+} from "@/lib/constants";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -30,12 +37,9 @@ export const metadata: Metadata = {
   },
   description:
     "Houston Luxury Remodeling connects homeowners planning significant residential renovations with experienced Houston remodeling and design-build professionals.",
-  openGraph: {
-    type: "website",
-    siteName: SITE_NAME,
-    url: SITE_URL,
-    locale: "en_US",
-  },
+  // No `url` here: it would be inherited as og:url by every page that doesn't
+  // override it. Pages set their own og:url to match their canonical.
+  openGraph: { ...OPEN_GRAPH_DEFAULTS },
   twitter: {
     card: "summary_large_image",
   },
@@ -43,9 +47,7 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
-  verification: process.env.NEXT_PUBLIC_GSC_VERIFICATION
-    ? { google: process.env.NEXT_PUBLIC_GSC_VERIFICATION }
-    : undefined,
+  verification: GSC_VERIFICATION ? { google: GSC_VERIFICATION } : undefined,
 };
 
 const organizationJsonLd = {
@@ -61,11 +63,11 @@ const organizationJsonLd = {
     { "@type": "City", name: "Houston, TX" },
     ...NEIGHBORHOODS.map((n) => ({ "@type": "Place", name: n.name })),
   ],
-  ...(process.env.NEXT_PUBLIC_CONTACT_PHONE
+  ...(CONTACT_PHONE
     ? {
         contactPoint: {
           "@type": "ContactPoint",
-          telephone: process.env.NEXT_PUBLIC_CONTACT_PHONE,
+          telephone: CONTACT_PHONE,
           contactType: "customer service",
           areaServed: "US",
         },

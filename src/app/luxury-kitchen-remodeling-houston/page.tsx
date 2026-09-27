@@ -5,13 +5,14 @@ import PrimaryCta from "@/components/shared/PrimaryCta";
 import ImageTextSection from "@/components/shared/ImageTextSection";
 import PageFAQ from "@/components/shared/PageFAQ";
 import { IMAGES } from "@/data/images";
-import { SITE_NAME, SITE_URL, NEIGHBORHOODS } from "@/lib/constants";
+import { SITE_NAME, SITE_URL, NEIGHBORHOODS, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Kitchen Remodeling Houston | Luxury & Custom Kitchen Guide",
   description:
     "A planning guide to kitchen remodeling and renovation in Houston — layout, custom cabinetry, natural stone, and appliance decisions for a substantial luxury kitchen.",
   alternates: { canonical: "/luxury-kitchen-remodeling-houston" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/luxury-kitchen-remodeling-houston" },
 };
 
 const serviceJsonLd = {

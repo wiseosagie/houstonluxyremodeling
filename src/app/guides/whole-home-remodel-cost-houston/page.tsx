@@ -3,13 +3,14 @@ import Breadcrumbs from "@/components/shared/Breadcrumbs";
 import CTASection from "@/components/shared/CTASection";
 import CostTable from "@/components/shared/CostTable";
 import PageFAQ from "@/components/shared/PageFAQ";
-import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { SITE_NAME, SITE_URL, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Whole Home Remodel Cost Houston (2026) | Budget Factors",
   description:
     "What drives whole-home remodel cost in Houston — home size, structural scope, systems, finishes, and permitting — with published national cost ranges by tier.",
   alternates: { canonical: "/guides/whole-home-remodel-cost-houston" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/guides/whole-home-remodel-cost-houston" },
 };
 
 const PUBLISHED = "2026-09-20";

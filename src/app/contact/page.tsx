@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import Breadcrumbs from "@/components/shared/Breadcrumbs";
 import PrimaryCta from "@/components/shared/PrimaryCta";
 import PhoneLink from "@/components/shared/PhoneLink";
-import { CONTACT_EMAIL } from "@/lib/constants";
+import Link from "next/link";
+import { CONTACT_EMAIL, NEIGHBORHOODS, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Contact",
   description: "Get in touch with Houston Luxury Remodeling.",
   alternates: { canonical: "/contact" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/contact" },
 };
 
 export default function ContactPage() {
@@ -23,6 +25,17 @@ export default function ContactPage() {
           right internal review.
         </p>
         <PrimaryCta href="/consultation" label="Request a Private Consultation" location="contact_page" />
+        <p className="mt-8 text-sm leading-relaxed text-charcoal-light">
+          We currently focus on{" "}
+          <Link href="/houston" className="underline hover:text-bronze-dark">
+            {NEIGHBORHOODS.map((n) => n.name).join(", ")}
+          </Link>
+          . To see what happens after you submit a project, read{" "}
+          <Link href="/how-it-works" className="underline hover:text-bronze-dark">
+            How It Works
+          </Link>
+          .
+        </p>
 
         <div className="mt-14 border-t border-stone-200 pt-10">
           <h2 className="text-2xl font-serif mb-4">General Inquiries</h2>

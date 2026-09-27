@@ -5,12 +5,14 @@ import PrimaryCta from "@/components/shared/PrimaryCta";
 import ImageTextSection from "@/components/shared/ImageTextSection";
 import PageFAQ from "@/components/shared/PageFAQ";
 import { IMAGES } from "@/data/images";
+import { OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Tanglewood Remodeling | Home Renovation Planning Guide",
   description:
     "Planning a renovation in Tanglewood, Houston — mid-century housing stock, civic association guidelines, and what shapes a renovation on Tanglewood's wooded lots.",
   alternates: { canonical: "/tanglewood-remodeling" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/tanglewood-remodeling" },
 };
 
 const FAQS = [

@@ -8,12 +8,14 @@ import InspirationGallery from "@/components/shared/InspirationGallery";
 import CTASection from "@/components/shared/CTASection";
 import FAQ from "@/components/shared/FAQ";
 import PrimaryCta from "@/components/shared/PrimaryCta";
+import { OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Private Renovation Consultation for Houston Homes",
   description:
     "Houston Luxury Remodeling connects homeowners planning $100,000+ residential renovations with experienced Houston remodeling and design-build professionals. Private, complimentary, no obligation.",
   alternates: { canonical: "/" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/" },
 };
 
 export default function HomePage() {

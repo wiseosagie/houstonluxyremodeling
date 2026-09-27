@@ -5,13 +5,14 @@ import PrimaryCta from "@/components/shared/PrimaryCta";
 import ImageTextSection from "@/components/shared/ImageTextSection";
 import PageFAQ from "@/components/shared/PageFAQ";
 import { IMAGES } from "@/data/images";
-import { SITE_NAME, SITE_URL, NEIGHBORHOODS } from "@/lib/constants";
+import { SITE_NAME, SITE_URL, NEIGHBORHOODS, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Primary Suite Remodeling Houston | Bedroom & Bath Guide",
   description:
     "Planning a primary suite remodel in Houston — bathroom layout, closet reconfiguration, waterproofing, and how to sequence a bedroom-and-bath renovation.",
   alternates: { canonical: "/primary-suite-remodeling-houston" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/primary-suite-remodeling-houston" },
 };
 
 const serviceJsonLd = {

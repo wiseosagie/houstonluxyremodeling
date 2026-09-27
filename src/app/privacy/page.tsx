@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Breadcrumbs from "@/components/shared/Breadcrumbs";
+import { OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description: "How Houston Luxury Remodeling collects, uses, and shares information.",
   alternates: { canonical: "/privacy" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/privacy" },
 };
 
 export default function PrivacyPage() {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Breadcrumbs from "@/components/shared/Breadcrumbs";
 import CTASection from "@/components/shared/CTASection";
-import { NEIGHBORHOODS } from "@/lib/constants";
+import { NEIGHBORHOODS, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 import { IMAGES } from "@/data/images";
 
 export const metadata: Metadata = {
@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   description:
     "Houston Luxury Remodeling currently focuses on River Oaks, Memorial, Tanglewood, West University, and Afton Oaks — neighborhoods where significant home renovations are common.",
   alternates: { canonical: "/houston" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/houston" },
 };
 
 // Phase 2 note: each neighborhood below is intentionally structured as a

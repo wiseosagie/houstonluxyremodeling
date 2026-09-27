@@ -5,12 +5,14 @@ import PrimaryCta from "@/components/shared/PrimaryCta";
 import ImageTextSection from "@/components/shared/ImageTextSection";
 import PageFAQ from "@/components/shared/PageFAQ";
 import { IMAGES } from "@/data/images";
+import { OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "River Oaks Remodeling | Renovation Planning for River Oaks",
   description:
     "Planning a renovation in River Oaks — architectural character, deed restrictions, and what homeowners should know before hiring a remodeling professional.",
   alternates: { canonical: "/river-oaks-remodeling" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/river-oaks-remodeling" },
 };
 
 const FAQS = [

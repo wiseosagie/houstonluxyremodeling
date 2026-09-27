@@ -1,3 +1,4 @@
+import Link from "next/link";
 import ServiceCard from "@/components/shared/ServiceCard";
 import { IMAGES } from "@/data/images";
 
@@ -55,6 +56,18 @@ export default function CategoryGrid() {
             />
           ))}
         </div>
+
+        <p className="mt-12 max-w-2xl text-sm leading-relaxed text-charcoal-light">
+          Renovating a bathroom on its own? See our{" "}
+          <Link href="/luxury-bathroom-remodeling-houston" className="underline hover:text-bronze-dark">
+            bathroom remodeling guide
+          </Link>
+          . For budgets and choosing a professional, browse our{" "}
+          <Link href="/guides" className="underline hover:text-bronze-dark">
+            planning and cost guides
+          </Link>
+          .
+        </p>
       </div>
     </section>
   );

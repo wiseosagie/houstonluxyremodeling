@@ -5,12 +5,14 @@ import PrimaryCta from "@/components/shared/PrimaryCta";
 import ImageTextSection from "@/components/shared/ImageTextSection";
 import PageFAQ from "@/components/shared/PageFAQ";
 import { IMAGES } from "@/data/images";
+import { OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "West University Remodeling | Renovation Planning Guide",
   description:
     "Planning a renovation in West University Place — tight lots, tree protection rules, and how the city's own permitting process shapes a West U renovation or addition.",
   alternates: { canonical: "/west-university-remodeling" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/west-university-remodeling" },
 };
 
 const FAQS = [

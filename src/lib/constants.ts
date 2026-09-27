@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 export const SITE_NAME = "Houston Luxury Remodeling";
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://houstonluxuryremodeling.com";
@@ -7,6 +9,40 @@ export const SITE_URL =
 // displays a contact email should import this rather than hardcoding one.
 export const CONTACT_EMAIL =
   process.env.NEXT_PUBLIC_CONTACT_EMAIL || "hello@houstonluxuryremodeling.com";
+
+// Build-time variables can arrive blank or as a placeholder such as "."; those
+// must not render as a `tel:` link, a JSON-LD telephone, or a verification tag.
+// Anything that doesn't look like a real value resolves to undefined so the
+// dependent markup is omitted entirely.
+function realPhone(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.replace(/\D/g, "").length >= 10 ? trimmed : undefined;
+}
+
+// Deliberately loose: Google doesn't guarantee a token format, and silently
+// dropping a real token would break verification. This only rejects blanks,
+// punctuation-only placeholders, short values, and a pasted full <meta> tag.
+function realVerificationToken(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length >= 10 && /[A-Za-z0-9]/.test(trimmed) && !/\s/.test(trimmed)
+    ? trimmed
+    : undefined;
+}
+
+export const CONTACT_PHONE = realPhone(process.env.NEXT_PUBLIC_CONTACT_PHONE);
+export const GSC_VERIFICATION = realVerificationToken(process.env.NEXT_PUBLIC_GSC_VERIFICATION);
+
+// Shared Open Graph fields. A page-level `openGraph` object replaces the root
+// layout's rather than merging with it — including the image inherited from
+// src/app/opengraph-image.tsx — so each page spreads these and adds its own
+// `url` (always the same path as its canonical). Twitter card images fall back
+// to these as well.
+export const OPEN_GRAPH_DEFAULTS: NonNullable<Metadata["openGraph"]> = {
+  type: "website",
+  siteName: SITE_NAME,
+  locale: "en_US",
+  images: [{ url: "/opengraph-image", width: 1200, height: 630, type: "image/png" }],
+};
 
 export const NAV_LINKS = [
   { href: "/luxury-remodeling-houston", label: "Services" },

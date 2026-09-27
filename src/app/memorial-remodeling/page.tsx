@@ -5,12 +5,14 @@ import PrimaryCta from "@/components/shared/PrimaryCta";
 import ImageTextSection from "@/components/shared/ImageTextSection";
 import PageFAQ from "@/components/shared/PageFAQ";
 import { IMAGES } from "@/data/images";
+import { OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Memorial Remodeling | Home Renovation Planning in Memorial",
   description:
     "Planning a renovation in Memorial Houston — wooded lots, home vintages, flood plain considerations, and what to know before hiring a remodeling professional.",
   alternates: { canonical: "/memorial-remodeling" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/memorial-remodeling" },
 };
 
 const FAQS = [

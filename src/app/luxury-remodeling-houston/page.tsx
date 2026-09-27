@@ -4,13 +4,14 @@ import CTASection from "@/components/shared/CTASection";
 import PrimaryCta from "@/components/shared/PrimaryCta";
 import ServiceCard from "@/components/shared/ServiceCard";
 import { IMAGES } from "@/data/images";
-import { PROJECT_CATEGORIES, NEIGHBORHOODS, SITE_NAME, SITE_URL } from "@/lib/constants";
+import { PROJECT_CATEGORIES, NEIGHBORHOODS, SITE_NAME, SITE_URL, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Luxury Remodeling in Houston | Whole-Home, Kitchen & More",
   description:
     "A guide to planning a significant Houston home renovation — whole-home remodels, luxury kitchens, primary suites, additions, and outdoor living — plus how to choose the right professional.",
   alternates: { canonical: "/luxury-remodeling-houston" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/luxury-remodeling-houston" },
 };
 
 const serviceJsonLd = {
@@ -120,6 +121,13 @@ export default function LuxuryRemodelingHoustonPage() {
               />
             ))}
           </div>
+          <p className="mt-12 max-w-2xl text-sm leading-relaxed text-charcoal-light">
+            Renovating a bathroom on its own rather than the full primary suite? Our{" "}
+            <a href="/luxury-bathroom-remodeling-houston" className="underline hover:text-bronze-dark">
+              bathroom remodeling guide
+            </a>{" "}
+            covers that project.
+          </p>
         </div>
       </section>
 

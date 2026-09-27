@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Breadcrumbs from "@/components/shared/Breadcrumbs";
+import { OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Terms of Use",
   description: "Terms governing the use of the Houston Luxury Remodeling website.",
   alternates: { canonical: "/terms" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/terms" },
 };
 
 export default function TermsPage() {

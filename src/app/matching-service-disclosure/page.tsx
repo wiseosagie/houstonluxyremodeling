@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Breadcrumbs from "@/components/shared/Breadcrumbs";
+import { OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Matching Service Disclosure",
   description:
     "Houston Luxury Remodeling operates as a homeowner-to-professional matching and referral service. Read what that means before you submit a project.",
   alternates: { canonical: "/matching-service-disclosure" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/matching-service-disclosure" },
 };
 
 export default function MatchingServiceDisclosurePage() {

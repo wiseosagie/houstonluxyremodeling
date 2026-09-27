@@ -3,13 +3,14 @@ import Breadcrumbs from "@/components/shared/Breadcrumbs";
 import CTASection from "@/components/shared/CTASection";
 import CostTable from "@/components/shared/CostTable";
 import PageFAQ from "@/components/shared/PageFAQ";
-import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { SITE_NAME, SITE_URL, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Home Remodeling Cost Houston (2026) | What Drives the Number",
   description:
     "What actually drives home remodeling costs in Houston — scope, national vs. local data, and the factors that separate a $40,000 refresh from a $250,000 renovation.",
   alternates: { canonical: "/guides/home-remodeling-cost-houston" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/guides/home-remodeling-cost-houston" },
 };
 
 const PUBLISHED = "2026-09-20";

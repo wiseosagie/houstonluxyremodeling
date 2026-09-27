@@ -4,12 +4,14 @@ import Breadcrumbs from "@/components/shared/Breadcrumbs";
 import CTASection from "@/components/shared/CTASection";
 import PrimaryCta from "@/components/shared/PrimaryCta";
 import { IMAGES } from "@/data/images";
+import { OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "How It Works | A Private, Three-Step Process",
   description:
     "How Houston Luxury Remodeling works: tell us about your home, we review your project, and qualified projects may be introduced to a participating remodeling professional.",
   alternates: { canonical: "/how-it-works" },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/how-it-works" },
 };
 
 export default function HowItWorksPage() {
