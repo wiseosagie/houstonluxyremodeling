@@ -7,7 +7,8 @@ import { CONTACT_EMAIL, NEIGHBORHOODS, OPEN_GRAPH_DEFAULTS } from "@/lib/constan
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: "Get in touch with Houston Luxury Remodeling.",
+  description:
+    "Contact Houston Luxury Remodeling. Start a private consultation about a specific Houston renovation, or email us with press, partnership, or general questions.",
   alternates: { canonical: "/contact" },
   openGraph: { ...OPEN_GRAPH_DEFAULTS, url: "/contact" },
 };

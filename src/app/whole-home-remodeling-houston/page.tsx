@@ -4,11 +4,12 @@ import CTASection from "@/components/shared/CTASection";
 import PrimaryCta from "@/components/shared/PrimaryCta";
 import ImageTextSection from "@/components/shared/ImageTextSection";
 import PageFAQ from "@/components/shared/PageFAQ";
+import RelatedServices from "@/components/shared/RelatedServices";
 import { IMAGES } from "@/data/images";
-import { SITE_NAME, SITE_URL, NEIGHBORHOODS, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
+import { ORGANIZATION_ID, SITE_NAME, SITE_URL, NEIGHBORHOODS, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Whole Home Remodeling Houston | Whole-House Renovation Guide",
+  title: "Whole-Home Remodeling in Houston, TX",
   description:
     "Planning a whole-home remodel in Houston? A practical guide to scope, phasing, structural and MEP considerations, and budgeting for a full-house renovation.",
   alternates: { canonical: "/whole-home-remodeling-houston" },
@@ -20,7 +21,7 @@ const serviceJsonLd = {
   "@type": "Service",
   serviceType: "Whole-home renovation matching",
   name: `Whole Home Remodeling in Houston | ${SITE_NAME}`,
-  provider: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
+  provider: { "@type": "Organization", "@id": ORGANIZATION_ID, name: SITE_NAME, url: SITE_URL },
   areaServed: NEIGHBORHOODS.map((n) => ({ "@type": "Place", name: n.name })),
   description:
     "Matching Houston homeowners planning a whole-home renovation with experienced design-build and remodeling professionals.",
@@ -58,7 +59,7 @@ export default function WholeHomeRemodelingHoustonPage() {
       />
       <Breadcrumbs
         items={[
-          { label: "Luxury Remodeling Houston", href: "/luxury-remodeling-houston" },
+          { label: "Services", href: "/luxury-remodeling-houston" },
           { label: "Whole Home Remodeling", href: "/whole-home-remodeling-houston" },
         ]}
       />
@@ -214,6 +215,8 @@ export default function WholeHomeRemodelingHoustonPage() {
       </section>
 
       <PageFAQ items={FAQS} />
+
+      <RelatedServices current="/whole-home-remodeling-houston" />
 
       <CTASection
         title="Planning a Whole-Home Renovation?"

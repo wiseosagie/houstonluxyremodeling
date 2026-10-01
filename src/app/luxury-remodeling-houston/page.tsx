@@ -4,7 +4,7 @@ import CTASection from "@/components/shared/CTASection";
 import PrimaryCta from "@/components/shared/PrimaryCta";
 import ServiceCard from "@/components/shared/ServiceCard";
 import { IMAGES } from "@/data/images";
-import { PROJECT_CATEGORIES, NEIGHBORHOODS, SITE_NAME, SITE_URL, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
+import { ORGANIZATION_ID, PROJECT_CATEGORIES, NEIGHBORHOODS, SITE_NAME, SITE_URL, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Luxury Remodeling in Houston | Whole-Home, Kitchen & More",
@@ -21,6 +21,7 @@ const serviceJsonLd = {
   name: `Luxury Home Remodeling in Houston | ${SITE_NAME}`,
   provider: {
     "@type": "Organization",
+    "@id": ORGANIZATION_ID,
     name: SITE_NAME,
     url: SITE_URL,
   },
@@ -79,7 +80,7 @@ export default function LuxuryRemodelingHoustonPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd) }}
       />
-      <Breadcrumbs items={[{ label: "Luxury Remodeling Houston", href: "/luxury-remodeling-houston" }]} />
+      <Breadcrumbs items={[{ label: "Services", href: "/luxury-remodeling-houston" }]} />
 
       <header className="container-page pt-8 pb-16 md:pb-20">
         <div className="max-w-3xl">

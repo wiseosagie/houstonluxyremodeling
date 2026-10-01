@@ -3,7 +3,7 @@ import Breadcrumbs from "@/components/shared/Breadcrumbs";
 import CTASection from "@/components/shared/CTASection";
 import CostTable from "@/components/shared/CostTable";
 import PageFAQ from "@/components/shared/PageFAQ";
-import { SITE_NAME, SITE_URL, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
+import { ORGANIZATION_ID, SITE_NAME, SITE_URL, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Home Remodeling Cost Houston (2026) | What Drives the Number",
@@ -21,8 +21,8 @@ const articleJsonLd = {
   headline: "Home Remodeling Cost Houston: What Drives the Number",
   datePublished: PUBLISHED,
   dateModified: PUBLISHED,
-  author: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
-  publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
+  author: { "@type": "Organization", "@id": ORGANIZATION_ID, name: SITE_NAME, url: SITE_URL },
+  publisher: { "@type": "Organization", "@id": ORGANIZATION_ID, name: SITE_NAME, url: SITE_URL },
   mainEntityOfPage: `${SITE_URL}/guides/home-remodeling-cost-houston`,
 };
 

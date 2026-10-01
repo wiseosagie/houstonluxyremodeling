@@ -82,6 +82,22 @@ function checkPage(expectedUrl, fetchedUrl, res, html) {
   row.title = title ? decode(title[1]).trim() : null;
   if (!row.title) warn("missing <title>");
 
+  const description = metas.find((m) => /name\s*=\s*["']description["']/i.test(m));
+  row.description = description ? attr(description, "content") : null;
+  if (!row.description) fail("missing meta description");
+  if (!metas.some((m) => /property\s*=\s*["']og:title["']/i.test(m))) warn("missing og:title");
+
+  for (const block of html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+    try {
+      JSON.parse(block[1]);
+    } catch (err) {
+      fail(`invalid JSON-LD (${err.message})`);
+    }
+  }
+
+  // Root-relative hrefs, for the internal-link check in main().
+  row.links = [...html.matchAll(/<a\b[^>]*\shref="(\/[^"#?]*)/gi)].map((m) => m[1].replace(/(.)\/$/, "$1"));
+
   const body = html.slice(head.length).replace(/<script[\s\S]*?<\/script>/gi, "");
   const h1s = [...body.matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1>/gi)].map((m) => decode(m[1].replace(/<[^>]+>/g, "")).trim());
   row.h1 = h1s[0] ?? null;
@@ -140,6 +156,31 @@ async function main() {
       rows.push({ url: loc, status: "ERR", problems: [err.message] });
     }
   }
+
+  // Duplicate titles/descriptions across indexable pages.
+  for (const field of ["title", "description"]) {
+    const seen = new Map();
+    for (const r of rows) {
+      if (!r[field]) continue;
+      if (seen.has(r[field])) warnings.push(`duplicate ${field} on ${seen.get(r[field])} and ${new URL(r.url).pathname}`);
+      else seen.set(r[field], new URL(r.url).pathname);
+    }
+  }
+
+  // Internal links: every root-relative <a href> should be a sitemap page.
+  // Anything else is fetched once to confirm it isn't broken.
+  const sitemapPaths = new Set(locs.map((l) => new URL(l).pathname));
+  const extraLinks = new Set(rows.flatMap((r) => r.links ?? []).filter((p) => !sitemapPaths.has(p)));
+  for (const path of extraLinks) {
+    const { res } = await get(`${origin}${path}`);
+    if (res.status >= 400) critical.push(`broken internal link ${path}: HTTP ${res.status}`);
+    else warnings.push(`internal link ${path} is not in the sitemap (HTTP ${res.status})`);
+  }
+
+  // Soft-404 check: an unknown URL must return a real 404.
+  const missing = await get(`${origin}/this-page-should-not-exist-seo-check`);
+  if (missing.res.status !== 404) critical.push(`unknown URL returned HTTP ${missing.res.status}, expected 404`);
+  else console.log("404 check    unknown URL returned 404  OK\n");
 
   // Duplicate-host check (informational): only meaningful against production.
   if (origin === PREFERRED_ORIGIN) {

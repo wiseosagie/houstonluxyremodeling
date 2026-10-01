@@ -1,13 +1,14 @@
 import Link from "next/link";
 import Wordmark from "@/components/shared/Wordmark";
 import PhoneLink from "@/components/shared/PhoneLink";
-import { NEIGHBORHOODS, NAV_LINKS } from "@/lib/constants";
+import { NAV_LINKS } from "@/lib/constants";
+import { LOCATION_PAGES, SERVICE_PAGES } from "@/lib/routes";
 
 export default function Footer() {
   return (
     <footer className="bg-charcoal text-stone-200">
-      <div className="container-page py-16 grid grid-cols-1 md:grid-cols-4 gap-12">
-        <div className="md:col-span-1">
+      <div className="container-page py-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-12">
+        <div className="sm:col-span-2 lg:col-span-1">
           <Wordmark dark />
           <p className="mt-5 text-sm leading-relaxed text-stone-300 max-w-xs">
             A private matching service connecting Houston homeowners with experienced
@@ -34,11 +35,24 @@ export default function Footer() {
         </div>
 
         <div>
+          <p className="eyebrow text-stone-400 mb-4">Services</p>
+          <ul className="space-y-3 text-sm">
+            {SERVICE_PAGES.map((s) => (
+              <li key={s.href}>
+                <Link href={s.href} className="hover:text-white">
+                  {s.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
           <p className="eyebrow text-stone-400 mb-4">Areas We Serve</p>
           <ul className="space-y-3 text-sm">
-            {NEIGHBORHOODS.map((n) => (
-              <li key={n.slug}>
-                <Link href={`/${n.slug}-remodeling`} className="hover:text-white">
+            {LOCATION_PAGES.map((n) => (
+              <li key={n.href}>
+                <Link href={n.href} className="hover:text-white">
                   {n.name}
                 </Link>
               </li>

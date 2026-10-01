@@ -1,8 +1,35 @@
 import type { Metadata } from "next";
 
 export const SITE_NAME = "Houston Luxury Remodeling";
-export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://houstonluxuryremodeling.com";
+export const PRODUCTION_ORIGIN = "https://houstonluxuryremodeling.com";
+
+// Every canonical, og:url, sitemap <loc> and JSON-LD URL derives from this, so
+// a malformed NEXT_PUBLIC_SITE_URL must never reach it. The override is only
+// honored when it is a bare https origin on a non-preview host; a trailing
+// slash, path, `www`, localhost, or *.azurestaticapps.net value falls back to
+// the production origin.
+export function resolveSiteUrl(value: string | undefined): string {
+  try {
+    const url = new URL(value?.trim() ?? "");
+    const host = url.hostname;
+    const isPreviewHost =
+      host === "localhost" ||
+      host.startsWith("www.") ||
+      host.endsWith(".azurestaticapps.net") ||
+      /^[\d.]+$/.test(host);
+    if (url.protocol !== "https:" || isPreviewHost || url.pathname !== "/" || url.search) {
+      return PRODUCTION_ORIGIN;
+    }
+    return url.origin;
+  } catch {
+    return PRODUCTION_ORIGIN;
+  }
+}
+
+export const SITE_URL = resolveSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
+
+// JSON-LD node id for the site-wide Organization declared in the root layout.
+export const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 
 // Single source of truth for the public-facing contact address. Override via
 // NEXT_PUBLIC_CONTACT_EMAIL if the inbox ever changes; every component that

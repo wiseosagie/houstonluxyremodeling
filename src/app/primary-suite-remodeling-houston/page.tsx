@@ -4,11 +4,12 @@ import CTASection from "@/components/shared/CTASection";
 import PrimaryCta from "@/components/shared/PrimaryCta";
 import ImageTextSection from "@/components/shared/ImageTextSection";
 import PageFAQ from "@/components/shared/PageFAQ";
+import RelatedServices from "@/components/shared/RelatedServices";
 import { IMAGES } from "@/data/images";
-import { SITE_NAME, SITE_URL, NEIGHBORHOODS, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
+import { ORGANIZATION_ID, SITE_NAME, SITE_URL, NEIGHBORHOODS, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Primary Suite Remodeling Houston | Bedroom & Bath Guide",
+  title: "Primary Suite Remodeling in Houston, TX",
   description:
     "Planning a primary suite remodel in Houston — bathroom layout, closet reconfiguration, waterproofing, and how to sequence a bedroom-and-bath renovation.",
   alternates: { canonical: "/primary-suite-remodeling-houston" },
@@ -20,7 +21,7 @@ const serviceJsonLd = {
   "@type": "Service",
   serviceType: "Primary suite remodeling matching",
   name: `Primary Suite Remodeling in Houston | ${SITE_NAME}`,
-  provider: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
+  provider: { "@type": "Organization", "@id": ORGANIZATION_ID, name: SITE_NAME, url: SITE_URL },
   areaServed: NEIGHBORHOODS.map((n) => ({ "@type": "Place", name: n.name })),
   description:
     "Matching Houston homeowners planning a primary suite, primary bathroom, or bedroom renovation with experienced remodeling professionals.",
@@ -58,7 +59,7 @@ export default function PrimarySuiteRemodelingHoustonPage() {
       />
       <Breadcrumbs
         items={[
-          { label: "Luxury Remodeling Houston", href: "/luxury-remodeling-houston" },
+          { label: "Services", href: "/luxury-remodeling-houston" },
           { label: "Primary Suite Remodeling", href: "/primary-suite-remodeling-houston" },
         ]}
       />
@@ -159,6 +160,8 @@ export default function PrimarySuiteRemodelingHoustonPage() {
       </section>
 
       <PageFAQ items={FAQS} />
+
+      <RelatedServices current="/primary-suite-remodeling-houston" />
 
       <CTASection
         title="Planning a Primary Suite Renovation?"

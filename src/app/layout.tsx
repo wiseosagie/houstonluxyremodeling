@@ -12,6 +12,7 @@ import {
   CONTACT_PHONE,
   GSC_VERIFICATION,
   OPEN_GRAPH_DEFAULTS,
+  ORGANIZATION_ID,
 } from "@/lib/constants";
 
 const fraunces = Fraunces({
@@ -43,16 +44,17 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
   },
-  robots: {
-    index: true,
-    follow: true,
-  },
+  // No `robots` here: indexing is the default, and an explicit `index, follow`
+  // was also emitted on the 404 page beside Next's own `noindex`.
   verification: GSC_VERIFICATION ? { google: GSC_VERIFICATION } : undefined,
 };
 
+// Organization rather than LocalBusiness/HomeAndConstructionBusiness: the
+// business is a matching and referral service with no published address, and
+// it does not perform construction. Pages reference this node by ORGANIZATION_ID.
 const organizationJsonLd = {
-  "@context": "https://schema.org",
   "@type": "Organization",
+  "@id": ORGANIZATION_ID,
   name: SITE_NAME,
   url: SITE_URL,
   image: `${SITE_URL}/opengraph-image`,
@@ -75,13 +77,27 @@ const organizationJsonLd = {
     : {}),
 };
 
+const websiteJsonLd = {
+  "@type": "WebSite",
+  "@id": `${SITE_URL}/#website`,
+  name: SITE_NAME,
+  url: SITE_URL,
+  inLanguage: "en-US",
+  publisher: { "@id": ORGANIZATION_ID },
+};
+
+const siteJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [organizationJsonLd, websiteJsonLd],
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
       <body className="font-sans">
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
         />
         <GoogleAnalytics />
         <AttributionInit />

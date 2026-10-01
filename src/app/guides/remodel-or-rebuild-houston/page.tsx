@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Breadcrumbs from "@/components/shared/Breadcrumbs";
 import CTASection from "@/components/shared/CTASection";
 import PageFAQ from "@/components/shared/PageFAQ";
-import { SITE_NAME, SITE_URL, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
+import { ORGANIZATION_ID, SITE_NAME, SITE_URL, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Remodel vs. Rebuild in Houston | How to Decide",
@@ -20,8 +20,8 @@ const articleJsonLd = {
   headline: "Remodel vs. Rebuild in Houston: How to Decide",
   datePublished: PUBLISHED,
   dateModified: PUBLISHED,
-  author: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
-  publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
+  author: { "@type": "Organization", "@id": ORGANIZATION_ID, name: SITE_NAME, url: SITE_URL },
+  publisher: { "@type": "Organization", "@id": ORGANIZATION_ID, name: SITE_NAME, url: SITE_URL },
   mainEntityOfPage: `${SITE_URL}/guides/remodel-or-rebuild-houston`,
 };
 

@@ -1,5 +1,14 @@
 import Link from "next/link";
 import PrimaryCta from "@/components/shared/PrimaryCta";
+import { SERVICES_HUB, SERVICE_PAGES } from "@/lib/routes";
+
+const SECTION_LINKS = [
+  { href: SERVICES_HUB.href, label: "All Services" },
+  { href: "/houston", label: "Areas We Serve" },
+  { href: "/guides", label: "Remodeling Guides" },
+  { href: "/how-it-works", label: "How It Works" },
+  { href: "/contact", label: "Contact" },
+] as const;
 
 export default function NotFound() {
   return (
@@ -16,6 +25,20 @@ export default function NotFound() {
           Request a Consultation
         </Link>
       </div>
+
+      <nav aria-label="Site sections" className="mt-16 w-full max-w-3xl">
+        <ul className="flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm">
+          {[...SECTION_LINKS, ...SERVICE_PAGES.map((s) => ({ href: s.href, label: s.name }))].map(
+            (link) => (
+              <li key={link.href}>
+                <Link href={link.href} className="text-charcoal-light underline hover:text-bronze-dark">
+                  {link.label}
+                </Link>
+              </li>
+            ),
+          )}
+        </ul>
+      </nav>
     </div>
   );
 }

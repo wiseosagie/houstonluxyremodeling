@@ -4,11 +4,12 @@ import CTASection from "@/components/shared/CTASection";
 import PrimaryCta from "@/components/shared/PrimaryCta";
 import ImageTextSection from "@/components/shared/ImageTextSection";
 import PageFAQ from "@/components/shared/PageFAQ";
+import RelatedServices from "@/components/shared/RelatedServices";
 import { IMAGES } from "@/data/images";
-import { SITE_NAME, SITE_URL, NEIGHBORHOODS, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
+import { ORGANIZATION_ID, SITE_NAME, SITE_URL, NEIGHBORHOODS, OPEN_GRAPH_DEFAULTS } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Home Additions Houston | Second-Story & Room Addition Guide",
+  title: "Home Additions in Houston, TX",
   description:
     "Planning a home addition in Houston — second-story additions, primary suite wings, and the foundation, drainage, and permitting factors that shape what's possible.",
   alternates: { canonical: "/home-additions-houston" },
@@ -20,7 +21,7 @@ const serviceJsonLd = {
   "@type": "Service",
   serviceType: "Home addition matching",
   name: `Home Additions in Houston | ${SITE_NAME}`,
-  provider: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
+  provider: { "@type": "Organization", "@id": ORGANIZATION_ID, name: SITE_NAME, url: SITE_URL },
   areaServed: NEIGHBORHOODS.map((n) => ({ "@type": "Place", name: n.name })),
   description:
     "Matching Houston homeowners planning a significant home addition with experienced remodeling and design-build professionals.",
@@ -58,7 +59,7 @@ export default function HomeAdditionsHoustonPage() {
       />
       <Breadcrumbs
         items={[
-          { label: "Luxury Remodeling Houston", href: "/luxury-remodeling-houston" },
+          { label: "Services", href: "/luxury-remodeling-houston" },
           { label: "Home Additions", href: "/home-additions-houston" },
         ]}
       />
@@ -169,6 +170,8 @@ export default function HomeAdditionsHoustonPage() {
       </section>
 
       <PageFAQ items={FAQS} />
+
+      <RelatedServices current="/home-additions-houston" />
 
       <CTASection
         title="Planning a Home Addition?"
