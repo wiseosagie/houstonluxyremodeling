@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
   const leadId = randomUUID();
 
   try {
-    insertLead(leadId, {
+    await insertLead(leadId, {
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
   // The lead is safely stored — everything below is best-effort. Email
   // notification is an optional convenience, never a condition of success:
   // a missing configuration or a failed send must never lose or roll back
-  // the lead that's already in SQLite.
+  // the lead that's already stored.
   const emailResult = await sendLeadNotificationEmail({
     firstName: data.firstName,
     lastName: data.lastName,

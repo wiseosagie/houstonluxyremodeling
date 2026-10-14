@@ -1,7 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import type { DatabaseSync } from "node:sqlite";
-import { getDb, getLegacyDb, listLeads, snapshotDb } from "@/lib/db";
+import { buildSqliteSnapshot, listLeads } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,8 +10,7 @@ export const runtime = "nodejs";
 // the route doesn't exist (404), so it can never be open by accident.
 //
 //   ?format=json    (default) every lead row as JSON
-//   ?format=sqlite  a downloadable copy of the SQLite file itself
-//   ?db=legacy      read the original data/app.db instead of data/leads.db
+//   ?format=sqlite  the same leads as a downloadable SQLite database file
 
 function isAuthorized(request: NextRequest, expected: string): boolean {
   const header = request.headers.get("authorization") ?? "";
@@ -33,34 +31,23 @@ export async function GET(request: NextRequest) {
   }
 
   const noStore = { "cache-control": "no-store" };
-  const params = request.nextUrl.searchParams;
-  const legacy = params.get("db") === "legacy";
-
-  let db: DatabaseSync | null = null;
   try {
-    db = legacy ? getLegacyDb() : getDb();
-    if (!db) {
-      return NextResponse.json({ error: "Legacy database not found." }, { status: 404, headers: noStore });
-    }
+    const leads = await listLeads();
 
-    if (params.get("format") === "sqlite") {
-      return new NextResponse(new Uint8Array(snapshotDb(db)), {
+    if (request.nextUrl.searchParams.get("format") === "sqlite") {
+      return new NextResponse(new Uint8Array(buildSqliteSnapshot(leads)), {
         status: 200,
         headers: {
           ...noStore,
           "content-type": "application/vnd.sqlite3",
-          "content-disposition": `attachment; filename="${legacy ? "app" : "leads"}.db"`,
+          "content-disposition": 'attachment; filename="leads.db"',
         },
       });
     }
 
-    const leads = listLeads(db);
     return NextResponse.json({ count: leads.length, leads }, { status: 200, headers: noStore });
   } catch (error) {
     console.error("[api/leads/export] Failed to export leads", error);
     return NextResponse.json({ error: "Export failed." }, { status: 500, headers: noStore });
-  } finally {
-    // The legacy handle is opened per request; the main one is shared.
-    if (legacy) db?.close();
   }
 }

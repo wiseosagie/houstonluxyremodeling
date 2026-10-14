@@ -12,6 +12,7 @@ import { NextRequest } from "next/server";
 process.env.SQLITE_DB_PATH = ":memory:";
 delete process.env.RESEND_API_KEY;
 delete process.env.LEAD_NOTIFICATION_EMAIL;
+delete process.env.AZURE_TABLES_CONNECTION_STRING; // always the in-memory SQLite backend
 
 const { POST } = await import("@/app/api/leads/route.ts");
 const { getDb } = await import("@/lib/db.ts");
@@ -243,32 +244,3 @@ test("Test 11 — export returns every stored lead as JSON, and the DB as a SQLi
   assert.equal(bytes.subarray(0, 16).toString("latin1"), "SQLite format 3\0");
 });
 
-test("Test 12 — ?db=legacy reads the old database read-only, and 404s when it's absent", async () => {
-  process.env.LEADS_EXPORT_TOKEN = "correct-token";
-  const { DatabaseSync } = await import("node:sqlite");
-  const { mkdtempSync, rmSync } = await import("node:fs");
-  const { tmpdir } = await import("node:os");
-  const { join } = await import("node:path");
-
-  const dir = mkdtempSync(join(tmpdir(), "hlr-legacy-"));
-  try {
-    process.env.LEGACY_SQLITE_DB_PATH = join(dir, "missing.db");
-    assert.equal((await EXPORT(makeExportRequest("?db=legacy", "correct-token"))).status, 404);
-
-    const legacyPath = join(dir, "app.db");
-    const legacy = new DatabaseSync(legacyPath);
-    legacy.exec("create table leads (lead_id text primary key, created_at text not null)");
-    legacy.prepare("insert into leads values (?, ?)").run("legacy-1", "2026-10-02T00:00:00.000Z");
-    legacy.close();
-
-    process.env.LEGACY_SQLITE_DB_PATH = legacyPath;
-    const res = await EXPORT(makeExportRequest("?db=legacy", "correct-token"));
-    const body = await res.json();
-    assert.equal(res.status, 200);
-    assert.equal(body.count, 1);
-    assert.equal(body.leads[0].lead_id, "legacy-1");
-  } finally {
-    delete process.env.LEGACY_SQLITE_DB_PATH;
-    rmSync(dir, { recursive: true, force: true });
-  }
-});

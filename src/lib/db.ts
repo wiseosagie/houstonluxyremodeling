@@ -1,19 +1,23 @@
 import "server-only";
-import { DatabaseSync } from "node:sqlite";
+import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import type { LeadClassification } from "./leadScoring";
+import { LEAD_COLUMNS, type LeadRow } from "./leadRow";
+import { insertTableLead, isTableStorageConfigured, listTableLeads } from "./tableStore";
 
-// SQLite (Node's built-in `node:sqlite`) is the Phase 1 system of record for
-// leads — no external database service. A single file on disk, created
-// automatically on first use. See "Production deployment" in README.md for
-// the one requirement this brings: the host's filesystem must persist that
-// file across deploys/restarts, or leads will be lost.
+// Two interchangeable backends hold the `leads` records:
 //
-// Leads go to `data/leads.db`. The first production deploy wrote to
-// `data/app.db`; that file is now "legacy" — never written to again, only
-// opened read-only (if it still exists) so the owner export can recover it.
+// - Azure Table Storage, whenever AZURE_TABLES_CONNECTION_STRING is set. This
+//   is production: the Static Web App's managed backend has a throwaway disk
+//   that is wiped on deploys/restarts, so a file there loses leads.
+// - SQLite (Node's built-in `node:sqlite`) otherwise — a local file
+//   (`data/leads.db`, created on first use) for development, or `:memory:`
+//   for the test suite.
+//
+// Either way a lead is the same flat row (`LeadRow`, columns as in SCHEMA),
+// so the export and the snapshot below don't care which backend is active.
 
 const SCHEMA = `
   create table if not exists leads (
@@ -84,31 +88,10 @@ export function getDb(): DatabaseSync {
   return instance;
 }
 
-// Read-only handle on the legacy database, or null when the file isn't
-// there. Never creates the file and never writes to it.
-export function getLegacyDb(): DatabaseSync | null {
-  const configured = process.env.LEGACY_SQLITE_DB_PATH;
-  const path = resolve(configured && configured.length > 0 ? configured : "./data/app.db");
-  if (!existsSync(path)) return null;
-  return new DatabaseSync(path, { readOnly: true });
-}
-
-export function listLeads(db: DatabaseSync = getDb()): Record<string, unknown>[] {
-  return db.prepare("select * from leads order by created_at desc").all() as Record<string, unknown>[];
-}
-
-// A consistent, self-contained copy of the whole database (WAL contents
-// included) as SQLite file bytes — `vacuum into` writes a fresh file, so the
-// download never depends on the live -wal/-shm sidecar files.
-export function snapshotDb(db: DatabaseSync = getDb()): Buffer {
-  const dir = mkdtempSync(join(tmpdir(), "hlr-db-"));
-  const target = join(dir, "snapshot.db");
-  try {
-    db.prepare("vacuum into ?").run(target);
-    return readFileSync(target);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
+function insertRow(db: DatabaseSync, row: LeadRow): void {
+  db.prepare(
+    `insert into leads (${LEAD_COLUMNS.join(", ")}) values (${LEAD_COLUMNS.map(() => "?").join(", ")})`
+  ).run(...LEAD_COLUMNS.map((column) => row[column] as SQLInputValue));
 }
 
 export type NewLeadInput = {
@@ -134,56 +117,69 @@ export type NewLeadInput = {
   referrer: string;
 };
 
-// Inserts a new lead and returns nothing — callers already generated leadId
+// Stores a new lead and returns nothing — callers already generated leadId
 // so the API response and the stored row are guaranteed to agree. Throws on
 // failure; the caller (the API route) is responsible for turning that into a
 // safe 500 response without leaking the underlying error to the client.
-export function insertLead(leadId: string, input: NewLeadInput): void {
+export async function insertLead(leadId: string, input: NewLeadInput): Promise<void> {
   const now = new Date().toISOString();
+  const row: LeadRow = {
+    lead_id: leadId,
+    created_at: now,
+    updated_at: now,
+    first_name: input.firstName,
+    last_name: input.lastName,
+    email: input.email,
+    phone: input.phone,
+    zip_code: input.zipCode,
+    neighborhood: input.neighborhood,
+    project_type: input.projectType,
+    budget_range: input.budgetRange,
+    timeline: input.timeline,
+    design_status: input.designStatus,
+    project_description: input.projectDescription,
+    lead_score: input.leadScore,
+    lead_classification: input.leadClassification,
+    source: input.source,
+    medium: input.medium,
+    campaign: input.campaign,
+    content: input.content,
+    term: input.term,
+    landing_page: input.landingPage,
+    referrer: input.referrer,
+    status: "NEW",
+    assigned_partner: null,
+    internal_notes: null,
+  };
 
-  getDb()
-    .prepare(
-      `insert into leads (
-        lead_id, created_at, updated_at,
-        first_name, last_name, email, phone,
-        zip_code, neighborhood,
-        project_type, budget_range, timeline, design_status, project_description,
-        lead_score, lead_classification,
-        source, medium, campaign, content, term, landing_page, referrer,
-        status
-      ) values (
-        ?, ?, ?,
-        ?, ?, ?, ?,
-        ?, ?,
-        ?, ?, ?, ?, ?,
-        ?, ?,
-        ?, ?, ?, ?, ?, ?, ?,
-        'NEW'
-      )`
-    )
-    .run(
-      leadId,
-      now,
-      now,
-      input.firstName,
-      input.lastName,
-      input.email,
-      input.phone,
-      input.zipCode,
-      input.neighborhood,
-      input.projectType,
-      input.budgetRange,
-      input.timeline,
-      input.designStatus,
-      input.projectDescription,
-      input.leadScore,
-      input.leadClassification,
-      input.source,
-      input.medium,
-      input.campaign,
-      input.content,
-      input.term,
-      input.landingPage,
-      input.referrer
-    );
+  if (isTableStorageConfigured()) await insertTableLead(row);
+  else insertRow(getDb(), row);
+}
+
+// Every lead, newest first.
+export async function listLeads(): Promise<LeadRow[]> {
+  if (isTableStorageConfigured()) {
+    const rows = await listTableLeads();
+    return rows.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  }
+  return getDb().prepare("select * from leads order by created_at desc").all() as LeadRow[];
+}
+
+// The given leads as a standalone SQLite database file (same schema), so
+// the owner can download a real `.db` copy whichever backend is live.
+export function buildSqliteSnapshot(rows: LeadRow[]): Buffer {
+  const dir = mkdtempSync(join(tmpdir(), "hlr-db-"));
+  const target = join(dir, "leads.db");
+  try {
+    const db = new DatabaseSync(target);
+    try {
+      db.exec(SCHEMA);
+      for (const row of rows) insertRow(db, row);
+    } finally {
+      db.close();
+    }
+    return readFileSync(target);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }

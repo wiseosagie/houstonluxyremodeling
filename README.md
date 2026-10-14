@@ -13,9 +13,9 @@ disclosure shown on the live site.
 |---|---|---|
 | Framework | Next.js 15 (App Router) + TypeScript | Fast to deploy, excellent SEO primitives (metadata API, sitemap/robots as code, RSC for fast first paint), one deployment target for pages + API route |
 | Styling | Tailwind CSS | Rapid, consistent design-system implementation without a component library dependency |
-| Database | SQLite (Node's built-in `node:sqlite`) | Zero-config, file-based, no external service or account needed for an MVP's lead volume. See [`src/lib/db.ts`](src/lib/db.ts). |
-| Email | Resend (HTTP API, no SDK) — **optional, non-blocking notification only** | See [`src/lib/email.ts`](src/lib/email.ts). The SQLite `leads` table is the system of record; the notification email is a best-effort convenience layered on top. A missing config or a failed send is logged and never blocks, loses, or rolls back a stored lead — see "Email notifications" below. |
-| Hosting | Azure Static Web Apps | Configured deploy target — see [`.github/workflows/azure-static-web-apps-gray-tree-00f55e310.yml`](.github/workflows/azure-static-web-apps-gray-tree-00f55e310.yml). `node:sqlite` requires Node 24+; confirm the Azure resource's Next.js hybrid/SSR support actually executes the dynamic `/api/leads` route in production — see "Production deployment" below. |
+| Database | Azure Table Storage in production; SQLite (Node's built-in `node:sqlite`) locally and in tests | The Static Web App's managed backend has a throwaway disk (a production SQLite file there was lost on redeploy), so production leads live in the `leads` table of the `hlrleadsc65b3f` storage account. Without `AZURE_TABLES_CONNECTION_STRING` the app falls back to a local SQLite file — zero config for development. See [`src/lib/db.ts`](src/lib/db.ts) and [`src/lib/tableStore.ts`](src/lib/tableStore.ts). |
+| Email | Resend (HTTP API, no SDK) — **optional, non-blocking notification only** | See [`src/lib/email.ts`](src/lib/email.ts). The stored `leads` records are the system of record; the notification email is a best-effort convenience layered on top. A missing config or a failed send is logged and never blocks, loses, or rolls back a stored lead — see "Email notifications" below. |
+| Hosting | Azure Static Web Apps | Configured deploy target — see [`.github/workflows/azure-static-web-apps-gray-tree-00f55e310.yml`](.github/workflows/azure-static-web-apps-gray-tree-00f55e310.yml). `node:sqlite` requires Node 24+. The dynamic `/api/leads` routes are confirmed to run in production. |
 | Validation | Zod | Shared shape between the form and the server-side API validation |
 
 This is intentionally **not** over-engineered: no CMS, no ORM, no state-management library, no
@@ -33,10 +33,9 @@ src/
     shared/                   Reused across pages (CTASection, FAQ, ServiceCard, LocationCard, TrustSection, ProcessSteps, Breadcrumbs, InspirationGallery, PrimaryCta, PhoneLink, Wordmark)
     consultation/             The 7-step funnel: ConsultationForm (orchestrator), FormProgress, OptionCard, steps/*, ConfirmationScreen
     analytics/                GoogleAnalytics (GA4 loader + pageview tracker), AttributionInit (UTM capture)
-  lib/                        constants, validation (Zod), leadScoring, zipNeighborhood, email, rateLimit, db (SQLite), gtag, attribution
+  lib/                        constants, validation (Zod), leadScoring, zipNeighborhood, email, rateLimit, db (lead storage: SQLite or Table Storage), tableStore, gtag, attribution
   data/                       images.ts — the single source of truth for every photo used on the site
-data/leads.db                 SQLite database file (git-ignored, created on first run)
-data/app.db                   legacy database from the first deploy (read-only, see LEADS_EXPORT_TOKEN)
+data/leads.db                 local-development SQLite database (git-ignored, created on first run)
 docs/                         Deep-dive docs referenced below
 test/                         `node --test` suite for the leads API (honeypot, timing heuristic, rate limit) — see "Testing" below
 ```
@@ -69,9 +68,10 @@ See [`.env.example`](.env.example) for the full, commented list. Summary:
 
 | Variable | Required for | Notes |
 |---|---|---|
-| `SQLITE_DB_PATH` | Storing leads | Optional — defaults to `./data/leads.db`. The file and its parent directory are created automatically on first use. |
-| `LEADS_EXPORT_TOKEN` | Downloading leads | Optional. Enables `GET /api/leads/export` (owner-only, `Authorization: Bearer <token>`; add `?format=sqlite` for a copy of the database file, `?db=legacy` to read the original `data/app.db` instead). Unset means the route returns 404. Use a long random value and set it as an Azure app setting, never in the repo. |
-| `RESEND_API_KEY` / `LEAD_NOTIFICATION_EMAIL` | Lead notification email | **Optional.** Leave unset — the app stores every lead in SQLite regardless; a missing config, or any failure from Resend, only skips/fails the notification email (logged, e.g. `email_not_configured`, `resend_401`, `network_error`) and never affects the stored lead. See "Email notifications" below. |
+| `AZURE_TABLES_CONNECTION_STRING` | Storing leads in production | **Set in Azure, never locally.** Connection string of the `hlrleadsc65b3f` storage account; when set, leads go to its `leads` table (created automatically). Leave unset locally so development uses SQLite instead of writing to production. |
+| `SQLITE_DB_PATH` | Storing leads locally | Only used when the variable above is unset. Defaults to `./data/leads.db`; the file and its parent directory are created automatically on first use. |
+| `LEADS_EXPORT_TOKEN` | Downloading leads | Optional. Enables `GET /api/leads/export` (owner-only, `Authorization: Bearer <token>`; add `?format=sqlite` to download the leads as a SQLite database file). Unset means the route returns 404. Use a long random value and set it as an Azure app setting, never in the repo. |
+| `RESEND_API_KEY` / `LEAD_NOTIFICATION_EMAIL` | Lead notification email | **Optional.** Leave unset — the app stores every lead regardless; a missing config, or any failure from Resend, only skips/fails the notification email (logged, e.g. `email_not_configured`, `resend_401`, `network_error`) and never affects the stored lead. See "Email notifications" below. |
 | `EMAIL_FROM` | Lead notification email | Only relevant if the above two are set. Defaults to Resend's shared sandbox address. |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Analytics | **GA4 Measurement ID required from you.** Entirely inert (no script loads, no events fire) until this is set. Get it from GA4 Admin → Data Streams → your web stream. |
 | `NEXT_PUBLIC_SITE_URL` | Canonical URLs, sitemap, OG metadata | Set to the real production domain before launch |
@@ -87,24 +87,13 @@ Target: **Azure Static Web Apps** — see
 `NEXT_PUBLIC_CONTACT_PHONE`, and `NEXT_PUBLIC_CONTACT_EMAIL` are wired through as build-time
 `vars` in that workflow; set them in the repo's GitHub Actions variables.
 
-1. **Database — the requirement that matters most.** SQLite is a single file on disk
-   (`SQLITE_DB_PATH`, default `./data/leads.db`). For leads to persist, the Azure Static Web
-   Apps compute plan backing this app must give the running process **writable, persistent
-   local disk that survives between requests and across deploys/restarts** — not an ephemeral
-   or read-only filesystem. This has **not been verified against the actual Azure resource**
-   as part of this fix; confirm it directly (see "Azure Static Web Apps" note below) before
-   relying on it for real leads. If the plan's filesystem is ephemeral, `SQLITE_DB_PATH` must
-   point at a mounted persistent volume, or leads will silently reset on every cold start —
-   this repo does not attempt to solve that for you.
-2. **Azure Static Web Apps and the dynamic `/api/leads` route.** This app ships a standard
-   Next.js hybrid build (no `output: "export"`/`"standalone"`) with `/api/leads` as a
-   server-rendered route, not a static one. Whether Azure Static Web Apps' Next.js
-   integration actually executes that route in production depends on the plan/tier and how
-   the resource is configured — **this cannot be confirmed from the repository alone.**
-   Submit one real test lead against the deployed URL after every deploy that touches
-   `src/app/api/leads/route.ts` or `src/lib/db.ts`, and query the deployed database (or check
-   logs) to confirm it was actually persisted, not just that the HTTP response looked
-   successful.
+1. **Lead storage.** Production leads go to Azure Table Storage (`AZURE_TABLES_CONNECTION_STRING`
+   app setting on the Static Web App). Don't rely on files on the managed backend's disk — it
+   is wiped on deploys and restarts, which is how the first production SQLite file was lost.
+2. **Verify after deploys that touch lead storage.** After any deploy that changes
+   `src/app/api/leads/` or `src/lib/db.ts`/`tableStore.ts`, submit one test lead on the live
+   site and confirm it appears in `GET /api/leads/export` (see `LEADS_EXPORT_TOKEN`), not just
+   that the form showed success.
 3. Point the `houstonluxuryremodeling.com` DNS at Azure and set `NEXT_PUBLIC_SITE_URL`
    accordingly (the apex domain — see `src/middleware.ts` for the www → apex redirect).
 4. Create Google Analytics 4 and Google Search Console properties for the live domain, set
@@ -116,12 +105,13 @@ Target: **Azure Static Web Apps** — see
 
 ## Database schema
 
-Defined in [`src/lib/db.ts`](src/lib/db.ts) (Node's built-in `node:sqlite`, no external
-dependency). The `leads` table includes every field specified in the brief (contact info,
+Defined in [`src/lib/db.ts`](src/lib/db.ts) (SQLite schema) and
+[`src/lib/leadRow.ts`](src/lib/leadRow.ts) (the column list Table Storage mirrors, one entity
+property per column). The `leads` table includes every field specified in the brief (contact info,
 project details, lead score/classification, full UTM attribution, and a `status` pipeline
 column defaulting to `NEW`) plus `internal_notes` / `assigned_partner` for manual triage. The
 schema is created automatically on first run (`create table if not exists`) — no separate
-migration step. Rate limiting (below) is intentionally **in-memory only**, not SQLite-backed —
+migration step. Rate limiting (below) is intentionally **in-memory only**, not stored —
 there is no `lead_rate_limits` table.
 
 The schema is intentionally additive-friendly for Phase 2 (see below) — new columns or tables
@@ -233,10 +223,9 @@ before launch.
   burst of legitimate visitors whose requests all arrive without a usable `x-forwarded-for`
   header would collapse into one shared bucket. Reassess if spam or false-positive blocking
   becomes a real problem; do not add a distributed rate limiter without a concrete need.
-- **SQLite requires persistent, writable local disk on the host.** See "Production
-  deployment" above — this has not been verified against the actual Azure Static Web Apps
-  resource. On a host with an ephemeral filesystem, the `leads` table resets on every
-  deploy/cold start, silently losing every lead since the last restart.
+- **Leads stored before the move to Table Storage are gone.** The first production deploy
+  wrote them to a SQLite file on the managed backend's disk, which a later deploy wiped; no
+  notification emails were sent, so there is no other copy.
 - **No ESLint config is present**, so `npm run lint` currently prompts for interactive setup
   rather than running. Pre-existing gap, not introduced by this round of changes.
 - **ZIP → neighborhood matching is prefix-based**, not a real geocoding service. It's used
@@ -260,7 +249,7 @@ In priority order, based on what would most directly answer the Phase 1 success 
    (`NEIGHBORHOODS` in `src/lib/constants.ts`) and `/houston` page structure were built so
    this is a route-splitting exercise, not a redesign.
 3. **A minimal internal leads dashboard** (even a single authenticated `/admin/leads` page
-   querying SQLite directly, or a migration to a hosted Postgres provider with a proper admin
+   reading the `leads` table, or a migration to a hosted Postgres provider with a proper admin
    UI) so status updates (`CONTACTED` → `QUALIFIED` → …) don't require opening the database
    file by hand.
 4. **Real partner portfolios**, once available, to replace/supplement the stock "Design
