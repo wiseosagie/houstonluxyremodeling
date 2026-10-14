@@ -35,7 +35,8 @@ src/
     analytics/                GoogleAnalytics (GA4 loader + pageview tracker), AttributionInit (UTM capture)
   lib/                        constants, validation (Zod), leadScoring, zipNeighborhood, email, rateLimit, db (SQLite), gtag, attribution
   data/                       images.ts — the single source of truth for every photo used on the site
-data/app.db                   SQLite database file (git-ignored, created on first run)
+data/leads.db                 SQLite database file (git-ignored, created on first run)
+data/app.db                   legacy database from the first deploy (read-only, see LEADS_EXPORT_TOKEN)
 docs/                         Deep-dive docs referenced below
 test/                         `node --test` suite for the leads API (honeypot, timing heuristic, rate limit) — see "Testing" below
 ```
@@ -51,7 +52,7 @@ npm run dev                    # http://localhost:3000
 The site **runs and renders fully** with zero environment variables set. Google Analytics,
 Search Console verification, the phone number, and structured-data extras simply don't render
 until configured. The consultation funnel is fully usable end to end and writes to a local
-SQLite file (`data/app.db`, created automatically) with zero configuration — lead-notification
+SQLite file (`data/leads.db`, created automatically) with zero configuration — lead-notification
 email is the only piece that requires credentials, and it's intentionally optional (see "Email
 notifications" below).
 
@@ -68,7 +69,8 @@ See [`.env.example`](.env.example) for the full, commented list. Summary:
 
 | Variable | Required for | Notes |
 |---|---|---|
-| `SQLITE_DB_PATH` | Storing leads | Optional — defaults to `./data/app.db`. The file and its parent directory are created automatically on first use. |
+| `SQLITE_DB_PATH` | Storing leads | Optional — defaults to `./data/leads.db`. The file and its parent directory are created automatically on first use. |
+| `LEADS_EXPORT_TOKEN` | Downloading leads | Optional. Enables `GET /api/leads/export` (owner-only, `Authorization: Bearer <token>`; add `?format=sqlite` for a copy of the database file, `?db=legacy` to read the original `data/app.db` instead). Unset means the route returns 404. Use a long random value and set it as an Azure app setting, never in the repo. |
 | `RESEND_API_KEY` / `LEAD_NOTIFICATION_EMAIL` | Lead notification email | **Optional.** Leave unset — the app stores every lead in SQLite regardless; a missing config, or any failure from Resend, only skips/fails the notification email (logged, e.g. `email_not_configured`, `resend_401`, `network_error`) and never affects the stored lead. See "Email notifications" below. |
 | `EMAIL_FROM` | Lead notification email | Only relevant if the above two are set. Defaults to Resend's shared sandbox address. |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Analytics | **GA4 Measurement ID required from you.** Entirely inert (no script loads, no events fire) until this is set. Get it from GA4 Admin → Data Streams → your web stream. |
@@ -86,7 +88,7 @@ Target: **Azure Static Web Apps** — see
 `vars` in that workflow; set them in the repo's GitHub Actions variables.
 
 1. **Database — the requirement that matters most.** SQLite is a single file on disk
-   (`SQLITE_DB_PATH`, default `./data/app.db`). For leads to persist, the Azure Static Web
+   (`SQLITE_DB_PATH`, default `./data/leads.db`). For leads to persist, the Azure Static Web
    Apps compute plan backing this app must give the running process **writable, persistent
    local disk that survives between requests and across deploys/restarts** — not an ephemeral
    or read-only filesystem. This has **not been verified against the actual Azure resource**
@@ -173,7 +175,7 @@ consultation.
 `npm test` runs [`test/leads-api.test.ts`](test/leads-api.test.ts) via Node's built-in
 `node:test` runner (no test framework dependency) directly against the `POST /api/leads`
 handler, using an in-memory SQLite database (`SQLITE_DB_PATH=":memory:"`, never the real
-`data/app.db` file). It covers: a normal submission (stored, real ID), the honeypot being
+`data/leads.db` file). It covers: a normal submission (stored, real ID), the honeypot being
 filled (nothing stored), the timing heuristic (nothing stored), a genuinely invalid field
 still returning a normal 400 (nothing stored), rate limiting (6th rapid request from one IP
 gets a 429; a different IP is unaffected), submission succeeding with no Resend credentials

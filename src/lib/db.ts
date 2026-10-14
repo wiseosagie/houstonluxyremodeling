@@ -1,7 +1,8 @@
 import "server-only";
 import { DatabaseSync } from "node:sqlite";
-import { existsSync, mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import type { LeadClassification } from "./leadScoring";
 
 // SQLite (Node's built-in `node:sqlite`) is the Phase 1 system of record for
@@ -9,6 +10,10 @@ import type { LeadClassification } from "./leadScoring";
 // automatically on first use. See "Production deployment" in README.md for
 // the one requirement this brings: the host's filesystem must persist that
 // file across deploys/restarts, or leads will be lost.
+//
+// Leads go to `data/leads.db`. The first production deploy wrote to
+// `data/app.db`; that file is now "legacy" — never written to again, only
+// opened read-only (if it still exists) so the owner export can recover it.
 
 const SCHEMA = `
   create table if not exists leads (
@@ -55,7 +60,7 @@ function resolveDbPath(): string {
   const configured = process.env.SQLITE_DB_PATH;
   if (configured === ":memory:") return ":memory:";
 
-  const path = resolve(configured && configured.length > 0 ? configured : "./data/app.db");
+  const path = resolve(configured && configured.length > 0 ? configured : "./data/leads.db");
   const dir = dirname(path);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   return path;
@@ -77,6 +82,33 @@ export function getDb(): DatabaseSync {
   instance.exec(SCHEMA);
   globalThis.__hlrDb = instance;
   return instance;
+}
+
+// Read-only handle on the legacy database, or null when the file isn't
+// there. Never creates the file and never writes to it.
+export function getLegacyDb(): DatabaseSync | null {
+  const configured = process.env.LEGACY_SQLITE_DB_PATH;
+  const path = resolve(configured && configured.length > 0 ? configured : "./data/app.db");
+  if (!existsSync(path)) return null;
+  return new DatabaseSync(path, { readOnly: true });
+}
+
+export function listLeads(db: DatabaseSync = getDb()): Record<string, unknown>[] {
+  return db.prepare("select * from leads order by created_at desc").all() as Record<string, unknown>[];
+}
+
+// A consistent, self-contained copy of the whole database (WAL contents
+// included) as SQLite file bytes — `vacuum into` writes a fresh file, so the
+// download never depends on the live -wal/-shm sidecar files.
+export function snapshotDb(db: DatabaseSync = getDb()): Buffer {
+  const dir = mkdtempSync(join(tmpdir(), "hlr-db-"));
+  const target = join(dir, "snapshot.db");
+  try {
+    db.prepare("vacuum into ?").run(target);
+    return readFileSync(target);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 export type NewLeadInput = {

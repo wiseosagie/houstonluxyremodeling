@@ -211,3 +211,64 @@ test("Test 9 — lead score and classification are computed correctly through th
   assert.equal(row.lead_classification, expectedClassification);
   assert.equal(row.neighborhood, "River Oaks");
 });
+
+const { GET: EXPORT } = await import("@/app/api/leads/export/route.ts");
+
+function makeExportRequest(query = "", token?: string) {
+  const headers: Record<string, string> = token ? { authorization: `Bearer ${token}` } : {};
+  return new NextRequest(`http://localhost/api/leads/export${query}`, { headers });
+}
+
+test("Test 10 — export is 404 when LEADS_EXPORT_TOKEN is unset, 401 with a wrong token", async () => {
+  delete process.env.LEADS_EXPORT_TOKEN;
+  assert.equal((await EXPORT(makeExportRequest("", "anything"))).status, 404);
+
+  process.env.LEADS_EXPORT_TOKEN = "correct-token";
+  assert.equal((await EXPORT(makeExportRequest())).status, 401);
+  assert.equal((await EXPORT(makeExportRequest("", "wrong-token"))).status, 401);
+});
+
+test("Test 11 — export returns every stored lead as JSON, and the DB as a SQLite file", async () => {
+  process.env.LEADS_EXPORT_TOKEN = "correct-token";
+
+  const json = await EXPORT(makeExportRequest("", "correct-token"));
+  const body = await json.json();
+  assert.equal(json.status, 200);
+  assert.equal(body.count, countLeads());
+  assert.equal(body.leads.length, countLeads());
+
+  const file = await EXPORT(makeExportRequest("?format=sqlite", "correct-token"));
+  assert.equal(file.status, 200);
+  const bytes = Buffer.from(await file.arrayBuffer());
+  assert.equal(bytes.subarray(0, 16).toString("latin1"), "SQLite format 3\0");
+});
+
+test("Test 12 — ?db=legacy reads the old database read-only, and 404s when it's absent", async () => {
+  process.env.LEADS_EXPORT_TOKEN = "correct-token";
+  const { DatabaseSync } = await import("node:sqlite");
+  const { mkdtempSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+
+  const dir = mkdtempSync(join(tmpdir(), "hlr-legacy-"));
+  try {
+    process.env.LEGACY_SQLITE_DB_PATH = join(dir, "missing.db");
+    assert.equal((await EXPORT(makeExportRequest("?db=legacy", "correct-token"))).status, 404);
+
+    const legacyPath = join(dir, "app.db");
+    const legacy = new DatabaseSync(legacyPath);
+    legacy.exec("create table leads (lead_id text primary key, created_at text not null)");
+    legacy.prepare("insert into leads values (?, ?)").run("legacy-1", "2026-10-02T00:00:00.000Z");
+    legacy.close();
+
+    process.env.LEGACY_SQLITE_DB_PATH = legacyPath;
+    const res = await EXPORT(makeExportRequest("?db=legacy", "correct-token"));
+    const body = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(body.count, 1);
+    assert.equal(body.leads[0].lead_id, "legacy-1");
+  } finally {
+    delete process.env.LEGACY_SQLITE_DB_PATH;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
