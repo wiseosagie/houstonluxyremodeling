@@ -33,3 +33,6 @@ next-env.d.ts
 /data/*.db-wal
 /data/*.db-shm
 /data/backups/
+# lead exports downloaded from /api/leads/export
+/leads.json
+/leads.db
