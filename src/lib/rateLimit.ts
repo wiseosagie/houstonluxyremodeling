@@ -22,9 +22,10 @@ export function hashIp(ip: string): string {
   return createHash("sha256").update(ip).digest("hex");
 }
 
-// Returns true if the request is allowed to proceed.
-export async function checkRateLimit(ip: string): Promise<boolean> {
-  const ipHash = hashIp(ip);
+// Returns true if the request is allowed to proceed. `scope` keeps separate
+// counters per use (lead submissions vs. admin login attempts) for one IP.
+export async function checkRateLimit(ip: string, scope = "leads"): Promise<boolean> {
+  const ipHash = hashIp(scope === "leads" ? ip : `${scope}:${ip}`);
   return checkMemory(ipHash);
 }
 

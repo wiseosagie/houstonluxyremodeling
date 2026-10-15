@@ -13,6 +13,7 @@ process.env.SQLITE_DB_PATH = ":memory:";
 delete process.env.RESEND_API_KEY;
 delete process.env.LEAD_NOTIFICATION_EMAIL;
 delete process.env.AZURE_TABLES_CONNECTION_STRING; // always the in-memory SQLite backend
+delete process.env.ADMIN_PASSWORD;
 
 const { POST } = await import("@/app/api/leads/route.ts");
 const { getDb } = await import("@/lib/db.ts");
@@ -244,3 +245,69 @@ test("Test 11 — export returns every stored lead as JSON, and the DB as a SQLi
   assert.equal(bytes.subarray(0, 16).toString("latin1"), "SQLite format 3\0");
 });
 
+
+const { POST: LOGIN } = await import("@/app/api/admin/login/route.ts");
+const { POST: LOGOUT } = await import("@/app/api/admin/logout/route.ts");
+
+function makeLoginRequest(password: string, ip = freshIp()) {
+  return new NextRequest("http://localhost/api/admin/login", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded", "x-forwarded-for": ip },
+    body: new URLSearchParams({ password }).toString(),
+  });
+}
+
+function exportWithCookie(cookie: string, query = "") {
+  return new NextRequest(`http://localhost/api/leads/export${query}`, { headers: { cookie: `hlr_admin=${cookie}` } });
+}
+
+test("Test 12 — admin login: wrong password is rejected, right one gives a session the export accepts", async () => {
+  delete process.env.LEADS_EXPORT_TOKEN;
+  process.env.ADMIN_PASSWORD = "admin-pass";
+
+  const wrong = await LOGIN(makeLoginRequest("nope"));
+  assert.equal(wrong.status, 303);
+  assert.equal(wrong.headers.get("location"), "/admin?error=invalid");
+  assert.equal(wrong.cookies.get("hlr_admin"), undefined);
+
+  const right = await LOGIN(makeLoginRequest("admin-pass"));
+  assert.equal(right.status, 303);
+  assert.equal(right.headers.get("location"), "/admin");
+  const session = right.cookies.get("hlr_admin");
+  assert.ok(session?.value, "expected a session cookie");
+  assert.equal(session.httpOnly, true);
+
+  assert.equal((await EXPORT(exportWithCookie(session.value))).status, 200);
+  assert.equal((await EXPORT(exportWithCookie(session.value.replace(/.$/, "x")))).status, 401, "tampered cookie");
+
+  // Changing the password signs existing sessions out.
+  process.env.ADMIN_PASSWORD = "rotated-pass";
+  assert.equal((await EXPORT(exportWithCookie(session.value))).status, 401);
+
+  const out = await LOGOUT();
+  assert.equal(out.headers.get("location"), "/admin");
+  assert.equal(out.cookies.get("hlr_admin")?.value, "");
+  delete process.env.ADMIN_PASSWORD;
+});
+
+test("Test 13 — admin login locks an IP out after 5 wrong passwords", async () => {
+  process.env.ADMIN_PASSWORD = "admin-pass";
+  const ip = freshIp();
+  for (let i = 0; i < 5; i++) {
+    assert.equal((await LOGIN(makeLoginRequest("nope", ip))).headers.get("location"), "/admin?error=invalid");
+  }
+  assert.equal((await LOGIN(makeLoginRequest("nope", ip))).headers.get("location"), "/admin?error=locked");
+  delete process.env.ADMIN_PASSWORD;
+});
+
+test("Test 14 — CSV export has a header row plus one row per lead, with formulas neutralised", async () => {
+  process.env.LEADS_EXPORT_TOKEN = "correct-token";
+  const res = await POST(makeRequest(validLead({ firstName: "=HYPERLINK(1)", email: "csv@example.com" })));
+  assert.equal(res.status, 201);
+
+  const csv = await (await EXPORT(makeExportRequest("?format=csv", "correct-token"))).text();
+  const lines = csv.trim().split("\r\n");
+  assert.ok(lines[0].replace("\uFEFF", "").startsWith("lead_id,created_at"));
+  assert.equal(lines.length, countLeads() + 1);
+  assert.ok(csv.includes(`"'=HYPERLINK(1)"`), "formula should be prefixed with a quote");
+});

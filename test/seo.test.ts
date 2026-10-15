@@ -29,10 +29,21 @@ function pageFileFor(route: string): string {
   return join(APP_DIR, ...route.split("/").filter(Boolean), "page.tsx");
 }
 
-// Route of every page.tsx under src/app (route groups and API excluded).
+// The password-protected lead viewer: deliberately noindex, not in the
+// sitemap, and free to link to API routes. Every other page must be public.
+const PRIVATE_DIR = join(APP_DIR, "admin");
+const isPrivate = (file: string) => file.startsWith(PRIVATE_DIR + sep);
+
+// Route of every public page.tsx under src/app (route groups and API excluded).
 const pageRoutes = walk(APP_DIR)
-  .filter((f) => f.endsWith(`${sep}page.tsx`))
+  .filter((f) => f.endsWith(`${sep}page.tsx`) && !isPrivate(f))
   .map((f) => "/" + relative(APP_DIR, f).split(sep).slice(0, -1).join("/"));
+
+test("the admin page is noindex and stays out of the sitemap", () => {
+  const source = readFileSync(join(PRIVATE_DIR, "page.tsx"), "utf8");
+  assert.ok(source.includes("robots: { index: false, follow: false }"), "admin page must be noindex");
+  assert.ok(!INDEXABLE_ROUTES.some((route) => route.startsWith("/admin")), "admin in INDEXABLE_ROUTES");
+});
 
 test("canonical origin is the production apex", () => {
   assert.equal(PRODUCTION_ORIGIN, "https://houstonluxuryremodeling.com");
@@ -136,17 +147,17 @@ test("every indexable page declares title, description, self-canonical, og:url, 
   }
 });
 
-test("no source file forces noindex or points metadata at a non-production host", () => {
+test("no public source file forces noindex or points metadata at a non-production host", () => {
   for (const file of walk(SRC_DIR).filter((f) => /\.(ts|tsx)$/.test(f))) {
     const source = readFileSync(file, "utf8");
-    assert.ok(!/index:\s*false|["']noindex["']/.test(source), `${file}: noindex`);
+    if (!isPrivate(file)) assert.ok(!/index:\s*false|["']noindex["']/.test(source), `${file}: noindex`);
     assert.ok(!/https?:\/\/(localhost|127\.0\.0\.1|[\w-]+\.azurestaticapps\.net)/.test(source), `${file}: dev/preview URL`);
   }
 });
 
 test("internal links point at indexable routes", () => {
   const known = new Set(INDEXABLE_ROUTES);
-  for (const file of walk(SRC_DIR).filter((f) => f.endsWith(".tsx") || f.endsWith("routes.ts") || f.endsWith("constants.ts"))) {
+  for (const file of walk(SRC_DIR).filter((f) => (f.endsWith(".tsx") || f.endsWith("routes.ts") || f.endsWith("constants.ts")) && !isPrivate(f))) {
     const source = readFileSync(file, "utf8");
     for (const match of source.matchAll(/href[=:]\s*\{?["'](\/[^"'#?]*)/g)) {
       assert.ok(known.has(match[1]), `${relative(SRC_DIR, file)} links to unknown route ${match[1]}`);
